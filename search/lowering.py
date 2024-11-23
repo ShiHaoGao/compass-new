@@ -1,0 +1,158 @@
+from typing import Optional, Dict, List, Set, Tuple, Union
+from pathlib import Path
+from core.pass_registry import DialectPassRegistry
+from core.pass_exec_engine import MLIRPassExecutionEngine
+from core.state import MLIRCodeState, PostDialectDecisionNode, PostPassDecisionNode
+from utils.statistics import PassStatisticsCollector
+from .search_tree import PassSearchTree
+from config.configuration import LoweringConfig
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class DynamicLowering:
+    
+    def __init__(self, config: Optional[LoweringConfig] = None):
+        # 使用默认配置或传入的配置
+        self.config = config or LoweringConfig()
+        
+        # 根据配置初始化组件
+        self.registry = DialectPassRegistry(config_path=self.config.pass_config_path)
+        self.mlir_exec_engine = MLIRPassExecutionEngine(registry=self.registry, mlir_opt_path=self.config.mlir_opt_path)
+        self.statistics = PassStatisticsCollector()
+        self.history = []
+        self.successful_pass_pipeline = []
+        self.search_tree = PassSearchTree()
+        
+        # 设置输出目录
+        self.config.output_dir.mkdir(parents=True, exist_ok=True)
+    
+    def is_successful_lowering_to_target(self, mlir_code_state: MLIRCodeState) -> bool:
+        dialects = mlir_code_state.get_available_dialects()
+        if len(dialects) == 1 and self.config.target_dialect in dialects:
+            return True
+        return False
+    
+    def lower(self, input_file: str) -> Optional[MLIRCodeState]:
+        """
+        动态降级MLIR到目标dialect
+        """
+        self.input_file = Path(input_file).name
+        with open(input_file, 'r') as f:
+            initial_content = f.read()
+
+        # 解析初始状态
+        initial_mlir_code_state = MLIRCodeState(content=initial_content, registry=self.registry, mlir_exec_engine=self.mlir_exec_engine)
+        initial_node = PostPassDecisionNode(code_state=initial_mlir_code_state, applied_pass=None)
+            
+        # 初始化搜索树
+        self.search_tree.initialize(initial_node)
+
+        # 开始构建树搜索
+        iteration = 0
+        while iteration < self.config.max_iterations:
+            iteration += 1
+            logger.info(f"Iteration: {iteration}")
+            current: Union[PostDialectDecisionNode, PostPassDecisionNode] = self.search_tree.current
+            current_mlir_code_state = current.get_mlir_code_state()
+            
+            # 检查是否达到目标
+            if self.is_successful_lowering_to_target(current_mlir_code_state):
+                # 记录成功路径
+                self.search_tree.record_successful_path()
+                self.successful_pass_pipeline = self.search_tree.get_transformation_sequence()
+                path = self.search_tree.get_transformation_sequence()
+                self.history.append(path)  # 将当前path记录到成功记录中。
+                self._save_current_state(current_mlir_code_state)
+                logger.info("Successfully Lowering mlir!")
+                return current_mlir_code_state
+            
+            # 状态访问检查与回溯
+            if self.search_tree.is_state_visited(current):
+                if not self.search_tree.backtrack():
+                    logger.debug("No solution found - backtracking exhausted")
+                    return None
+                logger.debug("Current state is visited. Backtrack!")
+                continue
+            
+            new_node = current.try_gen_next_node()
+            if new_node is not None:
+                self.search_tree.add_state(new_node)
+            else: # 生成新的节点失败
+                # current向上回溯到
+                self.search_tree.mark_state_visited(current)
+                if not self.search_tree.backtrack():
+                    logger.debug("No solution found - backtracking exhausted")
+                    return None
+                logger.debug("Generating new node failed. Backtrack!")
+            
+            
+
+    def _save_current_state(self, state: MLIRCodeState):
+        """保存中间状态"""
+        if not self.config.save_intermediate_states:
+            return
+        
+        state_file = Path(self.config.output_dir) / f"lowered_{self.input_file}"
+        with open(state_file, 'w') as f:
+            f.write(state.content)
+
+    def _print_changes(self, changes: dict):
+        """打印状态变化信息"""
+        self.logger.debug("\nChanges after pass:")
+        
+        if changes['new_ops']:
+            self.logger.debug("\nNew operators:")
+            for dialect, ops in changes['new_ops'].items():
+                self.logger.debug(f"  {dialect} dialect:")
+                for op, count in ops.items():
+                    self.logger.debug(f"    + {op}: {count}")
+                    
+        if changes['removed_ops']:
+            self.logger.debug("\nRemoved operators:")
+            for dialect, ops in changes['removed_ops'].items():
+                self.logger.debug(f"  {dialect} dialect:")
+                for op, count in ops.items():
+                    self.logger.debug(f"    - {op}: {count}")
+                    
+        if changes['changed_ops']:
+            self.logger.debug("\nChanged operator counts:")
+            for dialect, ops in changes['changed_ops'].items():
+                self.logger.debug(f"  {dialect} dialect:")
+                for op, diff in ops.items():
+                    self.logger.debug(f"    {op}: {diff:+d}")
+
+    def generate_report(self) -> dict:
+        """生成详细的转换报告"""
+        stats = self.statistics.get_all_statistics()
+        best_path = self.search_tree.get_best_path()
+        
+        report = {
+            "applied_passes": self.history,
+            "search_stats": {
+                "total_states": self.search_tree.metrics.total_states,
+                "visited_states": self.search_tree.metrics.visited_states,
+                "successful_paths": self.search_tree.metrics.successful_paths,
+                "failed_paths": self.search_tree.metrics.failed_paths,
+                "max_depth": self.search_tree.metrics.max_depth,
+                "total_time": self.search_tree.metrics.total_time
+            },
+            "pass_stats": {
+                pass_name: {
+                    "total_calls": stat.total_calls,
+                    "success_rate": stat.successful_calls / stat.total_calls,
+                    "average_time": stat.average_time
+                }
+                for pass_name, stat in stats.items()
+            }
+        }
+        
+        if best_path:
+            report["best_path"] = {
+                "pass pipeline": self.successful_pass_pipeline,
+                # "total_time": sum(node.metrics.time_cost for node in best_path if node.metrics),
+                # "memory_peak": max(node.metrics.memory_usage for node in best_path if node.metrics)
+            }
+            
+        return report

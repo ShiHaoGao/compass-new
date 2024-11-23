@@ -1,0 +1,102 @@
+
+dialects:
+  
+  affine:
+    level: MEDIUM
+    passes:
+      - name: "lower-affine"
+        priority: 1
+        description: "Lower Affine operations to a combination of Standard and SCF operations"
+        
+  vector:
+    level: MEDIUM
+    passes:
+      - name: "convert-vector-to-scf"
+        priority: 1
+        description: "Convert Vector dialect to SCF dialect"
+      - name: "convert-vector-to-llvm"
+        priority: 2
+        description: "Convert Vector dialect directly to LLVM dialect"
+  
+  arith:
+    level: MEDIUM
+    passes:
+      - name: "convert-arith-to-llvm"
+        priority: 1
+        description: "Convert Arith dialect to LLVM dialect"
+  
+  tosa:
+    level: HIGH
+    passes:
+      - name: "tosa-to-linalg"
+        priority: 1
+        type: FUNC
+        description: "Lower TOSA to LinAlg on tensors"
+      - name: "tosa-to-arith"
+        priority: 2
+        type: FUNC
+        description: "Lower TOSA to the Arith dialect"
+      - name: "tosa-to-linalg-named"
+        priority: 3
+        type: FUNC
+        description: "Lower TOSA to LinAlg named operations"
+      - name: "tosa-to-scf"
+        priority: 4
+        type: FUNC
+        description: "Lower TOSA to the SCF dialect"
+      - name: "-tosa-to-tensor"
+        priority: 5
+        type: FUNC
+        description: "Lower TOSA to the Tensor dialect"
+  
+  linalg:
+    level: MEDIUM
+    passes:
+      - name: "convert-linalg-to-loops"
+        priority: 1
+        description: "Lowers the linalg ops to loop nests using scf.for."
+      - name: "convert-linalg-to-affine-loops"
+        priority: 2
+        description: "Lower the operations from the linalg dialect into affine loops"
+      - name: "convert-linalg-to-parallel-loops"
+        priority: 3
+        description: "Lower the operations from the linalg dialect into parallel loops"
+
+  scf:
+    level: MEDIUM
+    passes:
+      - name: "convert-scf-to-cf"
+        priority: 1
+        description: "Convert SCF dialect to ControlFlow dialect, replacing structured control flow with a CFG"
+  
+  cf: 
+    level: MEDIUM
+    passes:
+      - name: "convert-cf-to-llvm"
+        priority: 1
+        description: "Convert ControlFlow operations to the LLVM dialect"
+  
+  func:
+    level: MEDIUM
+    passes:
+      - name: "convert-func-to-llvm"
+        priority: 1
+        description: "Convert from the Func dialect to the LLVM dialect"
+  
+  
+  memref:
+    level: MEDIUM
+    passes:
+      - name: "finalize-memref-to-llvm"
+        priority: 1
+        description: "Finalize MemRef dialect to LLVM dialect conversion"
+      - name: "expand-strided-metadata"
+        priority: 2
+        description: "Expand memref operations into easier to analyze constructs"
+  
+  llvm:
+    level: LOW
+    passes:
+      - name: "reconcile-unrealized-casts"
+        priority: 1
+        description: "Simplify and eliminate unrealized conversion casts"
