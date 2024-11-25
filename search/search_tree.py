@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Dict, List, Set, Optional, Tuple, Union
-from core.node import Node
+from core.node import Node, NodeType
 from core.state import MLIRCodeState, PostDialectDecisionNode, PostPassDecisionNode
 
 @dataclass
@@ -19,7 +19,7 @@ class PassSearchTree:
     def __init__(self):
         self.root: Optional[Node] = None
         self.current: Optional[Node] = None
-        self.visited_states: Set[str] = set()  # 记录已访问的状态哈希
+        self.visited_states: Set[bytes] = set()  # 记录已访问的状态哈希
         self.metrics = SearchMetrics()  # 搜索统计指标
         self.successful_paths: List[List[Node]] = []  # 成功路径记录
         
@@ -31,7 +31,7 @@ class PassSearchTree:
         self.current = self.root
         self.metrics = SearchMetrics()
                 
-    def is_state_visited(self, state: Union[PostDialectDecisionNode, PostPassDecisionNode]) -> bool:
+    def has_been_visited(self, state: Union[PostDialectDecisionNode, PostPassDecisionNode]) -> bool:
         """
         检查状态是否已访问过
         
@@ -41,7 +41,9 @@ class PassSearchTree:
         Returns:
             是否访问过
         """
-        return state.get_mlir_code_state() in self.visited_states
+        if state.get_type() == NodeType.POST_DIALECT:
+            return False
+        return state.get_code_state_hash() in self.visited_states
         
     def mark_state_visited(self, state: Union[PostDialectDecisionNode, PostPassDecisionNode]) -> None:
         """
@@ -50,7 +52,10 @@ class PassSearchTree:
         Args:
             state: 要标记的状态
         """
-        state_hash = state.get_mlir_code_state()
+        if state.get_type() == NodeType.POST_DIALECT:
+            return
+        
+        state_hash = state.get_code_state_hash()
         if state_hash not in self.visited_states:
             self.visited_states.add(state_hash)
             self.metrics.visited_states += 1
@@ -72,17 +77,14 @@ class PassSearchTree:
         self.current = state  # 自动切换到新节点
         return state
         
-    def backtrack(self) -> bool:
+    def backtrack(self):
         """
         回溯到父节点
-        
-        Returns:
-            是否成功回溯
         """
-        if self.current and self.current.parent is not None:
-            self.current = self.current.parent
-            return True
-        return False
+        self.current = self.current.parent
+
+    def current_is_empty(self) -> bool:
+        return self.current == None
         
     def record_successful_path(self) -> None:
         """记录当前成功的路径"""

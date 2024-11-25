@@ -2,7 +2,7 @@ from typing import Optional, Dict, List, Set, Tuple, Union
 from pathlib import Path
 from core.pass_registry import DialectPassRegistry
 from core.pass_exec_engine import MLIRPassExecutionEngine
-from core.state import MLIRCodeState, PostDialectDecisionNode, PostPassDecisionNode
+from core.state import MLIRCodeState, PostDialectDecisionNode, PostPassDecisionNode, InitialNode
 from utils.statistics import PassStatisticsCollector
 from .search_tree import PassSearchTree
 from config.configuration import LoweringConfig
@@ -44,7 +44,7 @@ class DynamicLowering:
 
         # 解析初始状态
         initial_mlir_code_state = MLIRCodeState(content=initial_content, registry=self.registry, mlir_exec_engine=self.mlir_exec_engine)
-        initial_node = PostPassDecisionNode(code_state=initial_mlir_code_state, applied_pass=None)
+        initial_node = InitialNode(code_state=initial_mlir_code_state)
             
         # 初始化搜索树
         self.search_tree.initialize(initial_node)
@@ -55,6 +55,11 @@ class DynamicLowering:
             iteration += 1
             logger.info(f"Iteration: {iteration}")
             current: Union[PostDialectDecisionNode, PostPassDecisionNode] = self.search_tree.current
+            if self.search_tree.current_is_empty():
+                logger.debug("No solution found - backtracking exhausted")
+                return None
+            
+            # 获取当前节点的MLIR代码状态
             current_mlir_code_state = current.get_mlir_code_state()
             
             # 检查是否达到目标
@@ -67,24 +72,19 @@ class DynamicLowering:
                 self._save_current_state(current_mlir_code_state)
                 logger.info("Successfully Lowering mlir!")
                 return current_mlir_code_state
-            
-            # 状态访问检查与回溯
-            if self.search_tree.is_state_visited(current):
-                if not self.search_tree.backtrack():
-                    logger.debug("No solution found - backtracking exhausted")
-                    return None
-                logger.debug("Current state is visited. Backtrack!")
-                continue
-            
+
             new_node = current.try_gen_next_node()
             if new_node is not None:
                 self.search_tree.add_state(new_node)
+                # 剪枝：已经搜索过的代码状态相同，则剪枝
+                if self.search_tree.has_been_visited(new_node):
+                    self.search_tree.backtrack()
+                    logger.debug("Current state is visited. Backtrack!")
+                    continue
             else: # 生成新的节点失败
                 # current向上回溯到
                 self.search_tree.mark_state_visited(current)
-                if not self.search_tree.backtrack():
-                    logger.debug("No solution found - backtracking exhausted")
-                    return None
+                self.search_tree.backtrack()
                 logger.debug("Generating new node failed. Backtrack!")
             
             

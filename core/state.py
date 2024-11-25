@@ -26,6 +26,7 @@ class MLIRCodeState:
         self.available_passes: Tuple[str] = ()
         self.history_dialects: Tuple[str] = history_dialects
         self.history_passes: Tuple[str] = history_passes
+        self.content_hash: bytes = hashlib.sha256(self.content.encode()).digest()
         self._gen_dialects_and_ops()
         self._gen_available_dialects_and_passes()
     
@@ -42,11 +43,11 @@ class MLIRCodeState:
 
     def get_available_dialects(self) -> Tuple:
         """获取所有可用的dialects"""
-        return self.available_dialects
+        return tuple(self.available_dialects)
 
     def get_available_passes(self) -> Tuple:
         """获取所有可用的passes"""
-        return self.available_passes
+        return tuple(self.available_passes)
 
     def get_total_op_count(self) -> int:
         """获取所有算子的总数"""
@@ -64,6 +65,9 @@ class MLIRCodeState:
             特定操作的数量
         """
         return self.op_statistics.get(dialect, Counter()).get(op, 0)
+
+    def get_hash(self) -> bytes:
+        return self.content_hash
 
     def compare_with(self, other: 'MLIRCodeState') -> Dict[str, Union[Dict[str, Union[Counter, Dict[str, int]]], Set[str]]]:
         """
@@ -148,7 +152,7 @@ class MLIRCodeState:
 
         return changes
 
-    def is_changed_from(self, other: 'MLIRCodeState') -> bool:
+    def is_different_from(self, other: 'MLIRCodeState') -> bool:
         """
         检查当前状态是否与另一个状态不同，包括dialect和操作级别的变化
         
@@ -163,24 +167,8 @@ class MLIRCodeState:
         """
         if not isinstance(other, type(self)):
             raise TypeError(f"Expected MLIRCodeState object, got {type(other).__name__}")
-            
-        changes = self.compare_with(other)
         
-        # 检查dialect级别的变化
-        if changes['new_dialects'] or changes['removed_dialects']:
-            return True
-        
-        # 检查操作级别的变化
-        op_level_changes = {
-            'new_ops': changes['new_ops'],
-            'removed_ops': changes['removed_ops'],
-            'changed_ops': changes['changed_ops']
-        }
-        
-        return any(
-            bool(changes)  # 检查字典是否非空
-            for changes in op_level_changes.values()
-        )
+        return self.get_hash() != other.get_hash()
 
     def __str__(self) -> str:
         """返回MLIR代码状态的字符串表示"""
@@ -202,31 +190,6 @@ class MLIRCodeState:
                     
         return "\n".join(lines)
 
-    def compute_hash(self) -> str:
-        """
-        生成状态的哈希值
-        
-        Args:
-            
-        Returns:
-            状态的唯一哈希值
-        """
-        state_dict = {
-            'dialects': sorted([
-                (d, sorted(list(ops))) 
-                for d, ops in self.dialects.items()
-            ]),
-            'op_counts': sorted([
-                (d, sorted([(op, count) for op, count in counter.items()]))
-                for d, counter in self.op_statistics.items()
-            ])
-        }
-
-        state_dict['content'] = self.content
-            
-        state_str = json.dumps(state_dict, sort_keys=True)
-        return hashlib.sha256(state_str.encode()).hexdigest()
-
     def try_pass(self, pass_name: str) -> Optional['MLIRCodeState']:
         """
         尝试应用一个pass
@@ -240,6 +203,7 @@ class MLIRCodeState:
         new_mlir_content = self.mlir_exec_engine.apply_pass(self.content, pass_name)
 
         if new_mlir_content is None:
+            logger.debug(f"new_mlir_content is None")
             return None
 
         # 解析新状态
@@ -250,12 +214,15 @@ class MLIRCodeState:
                                             history_passes=(*self.history_passes, pass_name))
         
         # 检查是否有变化
-        if not new_mlir_code_state.is_changed_from(self):
+        if not new_mlir_code_state.is_different_from(self):
             logger.debug(f"Pass {pass_name} did not change the MLIR")
             return None
 
         logger.debug(f"Pass: {pass_name} generates new MLIR state")
         return new_mlir_code_state
+
+    def clean_content(self):
+        self.content = self.mlir_exec_engine.clean_code(self.content)
 
 
 
@@ -273,7 +240,7 @@ class PostDialectDecisionNode(Node):
         super().__init__(node_type=NodeType.POST_DIALECT)
         self.code_state: MLIRCodeState = code_state
         self.applied_dialect = applied_dialect
-        self.active_passes = self.code_state.registry.get_dialect_passes(applied_dialect)
+        self.active_passes = list(self.code_state.registry.get_dialect_passes(applied_dialect))
 
 
     def __str__(self) -> str:
@@ -293,7 +260,7 @@ class PostDialectDecisionNode(Node):
         return "\n".join(lines)
 
     def get_code_state_hash(self) -> str:
-        return self.code_state.compute_hash()
+        return self.code_state.get_hash()
     
     def get_mlir_code_state(self) -> MLIRCodeState:
         return self.code_state
@@ -318,16 +285,21 @@ class PostDialectDecisionNode(Node):
             pass_name = self.select_next_pass()
             
             if pass_name is None:
+                logger.debug(f"PostDialectDecisionNode: don't have active passes. Backtrack!")
                 return None # 当前节点已经无法继续生成新节点
             
             logger.debug(f"history pass list: {self.code_state.history_passes}")
-            logger.debug(f"select newpass: {pass_name}")
+            logger.debug(f"select new pass: {pass_name}")
+            new_pass_pipeline = list(self.code_state.history_passes)
+            new_pass_pipeline.append(pass_name)
+            logger.debug(f"Current pass pipeline: {new_pass_pipeline}")
             self.remove_pass(pass_name)
             
             new_mlir_code_state = self.code_state.try_pass(pass_name)
             if new_mlir_code_state is not None:
                 return PostPassDecisionNode(code_state=new_mlir_code_state, applied_pass=pass_name)
             else:
+                logger.debug(f"new_mlir_code_state is None.")
                 continue
             
 
@@ -347,7 +319,7 @@ class PostPassDecisionNode(Node):
         """
         super().__init__(node_type=NodeType.POST_PASS)
         self.code_state: MLIRCodeState = code_state
-        self.active_dialects = code_state.get_available_dialects()
+        self.active_dialects = list(code_state.get_available_dialects())
         self.applied_pass: str = applied_pass
 
     def __str__(self) -> str:
@@ -367,7 +339,7 @@ class PostPassDecisionNode(Node):
         return "\n".join(lines)
     
     def get_code_state_hash(self) -> str:
-        return self.code_state.compute_hash()
+        return self.code_state.get_hash()
     
     def get_mlir_code_state(self) -> MLIRCodeState:
         return self.code_state
@@ -377,11 +349,8 @@ class PostPassDecisionNode(Node):
         
     def select_next_dialect(self) -> Optional[str]:
         """选择下一个要处理的dialect"""
-        # 删除历史使用过的dialects      
-        self.active_dialects = [x for x in self.active_dialects if x not in self.code_state.history_dialects]
         if len(self.active_dialects) == 0:
             return None
-        
         
         # current_levels = {d: self.code_state.registry.get_dialect_obj_by_name(d).level.value 
         #                  for d in self.active_dialects}
@@ -394,10 +363,14 @@ class PostPassDecisionNode(Node):
         dialect_name = self.select_next_dialect()
         
         if dialect_name is None:
+            logger.debug(f"PostPassDecisionNode: don't have active dialects. Backtrack!")
             return None # 无法继续生成节点，需要回溯
         
-        logger.debug(f"hisory dialect list: {self.code_state.history_dialects}")
+        logger.debug(f"history dialect list: {self.code_state.history_dialects}")
         logger.debug(f"select new dialect: {dialect_name}")
+        new_dialect_pipeline = list(self.code_state.history_dialects)
+        new_dialect_pipeline.append(dialect_name)
+        logger.debug(f"Current dialect list: {new_dialect_pipeline}")
         self.remove_dialect(dialect_name)
         
         
@@ -408,3 +381,11 @@ class PostPassDecisionNode(Node):
                       history_passes=self.code_state.history_passes)
         
         return PostDialectDecisionNode(code_state=new_mlir_code_state, applied_dialect=dialect_name)
+    
+class InitialNode(PostPassDecisionNode):
+    
+    def __init__(self, code_state: MLIRCodeState):
+        code_state.clean_content()
+        super().__init__(code_state=code_state, applied_pass=None)
+
+        

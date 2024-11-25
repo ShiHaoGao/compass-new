@@ -10,6 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class MLIRPassExecutionEngine:
+    
     def __init__(self, 
                  registry: Optional[DialectPassRegistry],
                  mlir_opt_path: str):
@@ -70,6 +71,28 @@ class MLIRPassExecutionEngine:
             '--pass-pipeline',
             pipeline
         ]
+
+    def clean_code(self, mlir_content: str) -> Optional[str]:
+        cmd = [
+            self.mlir_opt_path
+        ]
+        
+        process = subprocess.Popen(
+            cmd,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        
+        output, error = process.communicate(input=mlir_content)
+        
+        if process.returncode != 0:
+            logger.error(f"Original MLIR code is unlegal!") 
+            logger.error(f"ERROR: {error}")
+            return None
+
+        return output
 
     def apply_pass(self, mlir_content: str, mlir_pass: str) -> Optional[str]:
         """

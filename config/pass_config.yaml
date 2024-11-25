@@ -40,12 +40,8 @@ dialects:
         priority: 3
         type: FUNC
         description: "Lower TOSA to LinAlg named operations"
-      - name: "tosa-to-scf"
+      - name: "tosa-to-tensor"
         priority: 4
-        type: FUNC
-        description: "Lower TOSA to the SCF dialect"
-      - name: "-tosa-to-tensor"
-        priority: 5
         type: FUNC
         description: "Lower TOSA to the Tensor dialect"
   
@@ -100,3 +96,14 @@ dialects:
       - name: "reconcile-unrealized-casts"
         priority: 1
         description: "Simplify and eliminate unrealized conversion casts"
+
+  bufferization:
+    level: MEDIUM
+    passes:
+      - name: "one-shot-bufferize=bufferize-function-boundaries"
+        priority: 1
+        description: ""
+      - name: "buffer-deallocation-pipeline"
+        priority: 2
+        description: ""
+      
