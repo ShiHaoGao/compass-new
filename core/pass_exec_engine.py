@@ -2,7 +2,8 @@ from typing import Dict, Set, List, Tuple, Optional, Counter, Any
 from collections import Counter, defaultdict
 import subprocess
 import re
-from .pass_registry import DialectPassRegistry, PassType
+from .Registry import Registry
+from .Pass import PassType, Pass
 from pathlib import Path
 import os
 
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 class MLIRPassExecutionEngine:
     
     def __init__(self, 
-                 registry: Optional[DialectPassRegistry],
+                 registry: Optional[Registry],
                  mlir_opt_path: str):
         """
         
@@ -20,7 +21,7 @@ class MLIRPassExecutionEngine:
             registry: Pass注册表实例
             mlir_opt_path: buddy-opt工具路径
         """
-        self.registry: DialectPassRegistry = registry
+        self.registry = registry
         self.mlir_opt_path = Path(mlir_opt_path)
         
         # 验证环境
@@ -60,11 +61,17 @@ class MLIRPassExecutionEngine:
     def _build_command(self, mlir_pass: str) -> List[str]:
         """构建完整的命令"""
         
-        mlir_pass_obj = self.registry.get_pass_obj_by_name(mlir_pass)
+        mlir_pass_obj = self.registry.get_pass_by_name(mlir_pass)
+        passes = []
+        passes.append(mlir_pass_obj.name)
+        if mlir_pass_obj.has_next_pass():
+            passes.append(mlir_pass_obj.get_next_pass())
+        passes_str = ", ".join(f'{x}' for x in passes)
+        
         if mlir_pass_obj.type == PassType.ANY:
-            pipeline = f'builtin.module({mlir_pass_obj.name})'
+            pipeline = f'builtin.module({passes_str})'
         else:
-            pipeline = f'builtin.module({mlir_pass_obj.type.value}({mlir_pass_obj.name}))'
+            pipeline = f'builtin.module({mlir_pass_obj.type.value}({passes_str}))'
         
         return [
             self.mlir_opt_path,

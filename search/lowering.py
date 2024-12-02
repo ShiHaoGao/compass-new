@@ -1,8 +1,9 @@
 from typing import Optional, Dict, List, Set, Tuple, Union
 from pathlib import Path
-from core.pass_registry import DialectPassRegistry
+from core.Registry import Registry
 from core.pass_exec_engine import MLIRPassExecutionEngine
-from core.state import MLIRCodeState, PostDialectDecisionNode, PostPassDecisionNode, InitialNode
+from core.state import MLIRCodeState
+from core.node import PostDialectDecisionNode, PostPassDecisionNode, InitialNode
 from utils.statistics import PassStatisticsCollector
 from .search_tree import PassSearchTree
 from config.configuration import LoweringConfig
@@ -18,7 +19,7 @@ class DynamicLowering:
         self.config = config or LoweringConfig()
         
         # 根据配置初始化组件
-        self.registry = DialectPassRegistry(config_path=self.config.pass_config_path)
+        self.registry = Registry(config_path=self.config.pass_config_path)
         self.mlir_exec_engine = MLIRPassExecutionEngine(registry=self.registry, mlir_opt_path=self.config.mlir_opt_path)
         self.statistics = PassStatisticsCollector()
         self.history = []

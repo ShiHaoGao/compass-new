@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, List, Set, Optional, Tuple, Union
-from core.node import Node, NodeType
-from core.state import MLIRCodeState, PostDialectDecisionNode, PostPassDecisionNode
+from core.node import Node, NodeType, PostDialectDecisionNode, PostPassDecisionNode
+from core.state import MLIRCodeState
 
 @dataclass
 class SearchMetrics:

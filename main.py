@@ -101,29 +101,29 @@ def main():
     # 配置logging
     setup_logging(log_level=logging.DEBUG)
     
-    # 示例1：测试单个文件
-    # single_file = "/home/gaoshihao/learn/python/compass/tests/BuddyMobileNetV3/subgraph0.mlir"
-    # config = LoweringConfig.for_single_file(
-    #     max_iterations=1000000,
-    #     debug_mode=True,
-    #     save_intermediate_states=True,
-    #     output_dir="custom_output",
-    #     target_dialect="llvm",
-    #     file_path=single_file,
-    # )
-
-    # 示例2：处理目录中的所有文件（递归）
-    config = LoweringConfig(
+    # # 示例1：测试单个文件
+    single_file = "/home/gaoshihao/learn/python/compass/tests/MLIRVector/vector-transfer-read.mlir"
+    config = LoweringConfig.for_single_file(
         max_iterations=1000000,
         debug_mode=True,
         save_intermediate_states=True,
         output_dir="custom_output",
         target_dialect="llvm",
-        test_config=TestConfig(
-            test_path="tests/",
-            recursive_search=True
-        )
+        file_path=single_file,
     )
+
+    # 示例2：处理目录中的所有文件（递归）
+    # config = LoweringConfig(
+    #     max_iterations=1000000,
+    #     debug_mode=True,
+    #     save_intermediate_states=True,
+    #     output_dir="custom_output",
+    #     target_dialect="llvm",
+    #     test_config=TestConfig(
+    #         test_path="tests/", 
+    #         recursive_search=True
+    #     )
+    # )
 
     # 示例3：处理目录中的文件（非递归）
     # config = LoweringConfig(

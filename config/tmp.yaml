@@ -23,13 +23,6 @@ dialects:
         description: "Convert Arith dialect to LLVM dialect"
         next_pass: null
 
-  math:
-    description: "The math dialect is intended to hold mathematical operations on integer and floating types beyond simple arithmetics. "
-    passes:
-      - name: "convert-math-to-llvm"
-        description: "Convert Math dialect to LLVM dialect"
-        next_pass: null
-
   tosa:
     description: "Tensor Operator Set Architecture dialect"
     passes:
@@ -68,7 +61,7 @@ dialects:
     passes:
       - name: "convert-scf-to-cf"
         description: "Convert SCF dialect to ControlFlow dialect, replacing structured control flow with a CFG"
-        next_pass: null
+        next_pass: "convert-cf-to-llvm"
 
   cf:
     description: "Control Flow dialect"
@@ -94,20 +87,17 @@ dialects:
         description: "Expand memref operations into easier to analyze constructs"
         next_pass: "lower-affine"
 
-  builtin:
-    description: "builtin dialect"
+  llvm:
+    description: "LLVM IR dialect"
     passes:
       - name: "reconcile-unrealized-casts"
         description: "Simplify and eliminate unrealized conversion casts"
         next_pass: null
-  
-  llvm:
-    description: "llvm dialect"
 
   tensor:
     description: "Tensor operations dialect"
     passes:
-      - name: "one-shot-bufferize{bufferize-function-boundaries}"
+      - name: "one-shot-bufferize"
         description: "Bufferize Tensor operations"
         next_pass: null
 
@@ -127,14 +117,11 @@ pipelines:
       - name: "Tensor Bufferization"
         execute: "tensor"
         
-      - name: "Bufferization deallocation"
-        execute: "bufferization"
-
       - name: "Linalg Conversion"
         execute: "linalg"
-
-      - name: "vector Conversion"
-        execute: "vector"
-
+        
+      - name: "Bufferization deallocation"
+        execute: "bufferization"
+        
       - name: "Conversion to LLVM"
         execute: null
