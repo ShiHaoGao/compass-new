@@ -5,6 +5,7 @@ import hashlib
 from core.pass_exec_engine import MLIRPassExecutionEngine
 from core.Registry import Registry
 import logging
+import random
 
 logger = logging.getLogger(__name__)
 

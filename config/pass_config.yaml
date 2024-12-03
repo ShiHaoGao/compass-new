@@ -115,6 +115,21 @@ dialects:
     description: "Bufferization dialect for memory management"
     passes:
       - name: "buffer-deallocation-pipeline"
+        description: ""
+
+  torch:
+    level: HIGH
+    passes:
+      - name: "convert-torch-to-linalg "
+        priority: 1
+        description: "将Torch算子转换为Linalg算子"
+        type: FUNC
+      
+
+
+
+  
+      
         description: "Handle buffer deallocation for memory optimization"
         next_pass: null
 
