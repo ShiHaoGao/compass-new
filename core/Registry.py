@@ -115,6 +115,11 @@ class Registry:
         """Get pipeline object by name"""
         return self.pipelines.get(name)
         
+    def has_pipeline(self) -> bool:
+        if len(self.pipelines) == 0:
+            return False
+        return True
+        
     def print_registry(self):
         """Print registry contents"""
         print("\nDialects and Passes:")
