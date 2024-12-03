@@ -1,7 +1,7 @@
 import os
 from search.lowering import DynamicLowering
 from utils.reporter import LoweringReporter
-from config.configuration import LoweringConfig, TestConfig
+from config.configuration import LoweringConfig, TestPathConfig
 from config.logging_config import setup_logging
 import json
 from pathlib import Path
@@ -102,29 +102,34 @@ def main():
     setup_logging(log_level=logging.DEBUG)
     
     # # 示例1：测试单个文件
-    # single_file = "/home/gaoshihao/learn/python/compass/tests/MLIRAffine/affine-load.mlir"
-    # config = LoweringConfig.for_single_file(
-    #     max_iterations=1000000,
-    #     debug_mode=True,
-    #     save_intermediate_states=True,
-    #     output_dir="custom_output",
-    #     target_dialect="llvm",
-    #     file_path=single_file,
-    # )
-
-    # 示例2：处理目录中的所有文件（递归）
-    config = LoweringConfig(
+    single_file = "/home/gaoshihao/learn/python/compass/tests/MLIRAffine/affine-load.mlir"
+    config = LoweringConfig.for_single_file(
         max_iterations=1000000,
         debug_mode=True,
         save_intermediate_states=True,
-        mlir_opt_path="./tools/mlir-opt"
+        mlir_opt_path="./tools/mlir-opt",
         output_dir="custom_output",
+        third_party_config_path=None,
+        pass_config_path="config/core_config.yaml",
         target_dialect="llvm",
-        test_config=TestConfig(
-            test_path="tests/MLIRVector/", 
-            recursive_search=True
-        )
+        file_path=single_file,
     )
+
+    # 示例2：处理目录中的所有文件（递归）
+    # config = LoweringConfig(
+    #     max_iterations=1000000,
+    #     debug_mode=True,
+    #     save_intermediate_states=True,
+    #     mlir_opt_path="./tools/mlir-opt",
+    #     output_dir="custom_output",
+    #     third_party_config_path=None,
+    #     pass_config_path="config/core_config.yaml",
+    #     target_dialect="llvm",
+    #     test_config=TestPathConfig(
+    #         test_path="tests/MLIRVector/", 
+    #         recursive_search=True
+    #     )
+    # )
 
     # 示例3：处理目录中的文件（非递归）
     # config = LoweringConfig(

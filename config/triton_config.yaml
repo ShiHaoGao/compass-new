@@ -1,0 +1,27 @@
+dialects:
+
+  tt:
+    desrciption: "The Triton IR in MLIR."
+    passes:
+      - name: "convert-triton-to-tritongpu"
+        type: MODULE
+        description: "Convert Triton to TritonGPU"
+        next_pass: null
+
+  ttng:
+    description: "Triton Nvidia GPU Dialect."
+    passes:
+      - name: "triton-nvidia-gpu-plan-cta"
+        type: MODULE
+        description: "This pass computes and applies 'optimized' CTA tilings to DotOp, ReduceOp and StoreLikeOps operations."
+        next_pass: null
+
+      - name: "triton-nvidia-gpu-fence-insertion"
+        type: MODULE
+        description: "This pass is to insert memory fences to ensure that memory operations are properly ordered across generic and async operations."
+        next_pass: null
+
+      - name: "triton-nvidia-tma-lowering"
+        type: MODULE
+        description: "Lower Triton experimental descriptor load to TMA load/store operations in TritonNvidiaGPUDialect."
+        next_pass: null
