@@ -8,6 +8,9 @@ dialects:
         description: "Convert Triton to TritonGPU"
         next_pass: null
 
+  ttg:
+    description: "Triton GPU Dialect."
+
   ttng:
     description: "Triton Nvidia GPU Dialect."
     passes:

@@ -109,8 +109,8 @@ def main():
         save_intermediate_states=True,
         mlir_opt_path="./tools/mlir-opt",
         output_dir="custom_output",
-        third_party_config_path=None,
-        pass_config_path="config/core_config.yaml",
+        third_party_config_path="config/triton_config.yaml",
+        core_config_path="config/core_config.yaml",
         target_dialect="llvm",
         file_path=single_file,
     )
