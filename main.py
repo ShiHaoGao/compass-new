@@ -119,21 +119,11 @@ def main():
     #     save_intermediate_states=True,
     #     output_dir="custom_output",
     #     target_dialect="llvm",
-    #     file_path=single_file,
+    #     test_config=TestConfig(
+    #         test_path="tests/",
+    #         recursive_search=True
+    #     )
     # )
-
-    # 示例2：处理目录中的所有文件（递归）
-    config = LoweringConfig(
-        max_iterations=1000000,
-        debug_mode=True,
-        save_intermediate_states=True,
-        output_dir="custom_output",
-        target_dialect="llvm",
-        test_config=TestConfig(
-            test_path="tests/",
-            recursive_search=True
-        )
-    )
 
     # 示例3：处理目录中的文件（非递归）
     # config = LoweringConfig(

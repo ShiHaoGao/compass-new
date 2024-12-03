@@ -33,9 +33,9 @@ class Registry:
                             continue
                             
                         try:
-                            pass_type = pass_info.get("type", "ANY").upper()
+                            pass_type = pass_info.get("type", "MODULE").upper()
                             if pass_type not in PassType.__members__:
-                                pass_type = "ANY"
+                                pass_type = "MODULE"
                                 
                             pass_obj = Pass(
                                 name=pass_info["name"],
