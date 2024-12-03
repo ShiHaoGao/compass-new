@@ -18,7 +18,6 @@ class Pipeline:
     stages: List[PipelineStage]
     
     def get_stage_dialects_from(self, active_dialects: List[str]) -> List[str]:
-        logger.debug(f"active_dialects: {active_dialects}")
         for s in self.stages:
             dialects = s.get_exec_dialects()
             logger.debug(f"Stage execute dialects: {dialects}")
