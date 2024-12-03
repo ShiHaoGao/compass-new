@@ -1,0 +1,89 @@
+torch:
+  description: "torch dialect"
+  passes:
+    - name: "torch-globalize-object-graph"
+      type: ModuleOp
+      description: "Converts TorchScript object graphs to a globalized form."
+    - name: "torch-prepare-for-globalize-object-graph"
+      type: ModuleOp
+      description: "Lowering in preparation for globalizing."
+    - name: "torch-adjust-calling-conventions"
+      type: ModuleOp
+      description: "Adjust the calling conventions of functions."
+    - name: "torch-inline-global-slots"
+      type: ModuleOp
+      description: "Inlines torch.global_slot ops when it is safe to do so."
+    - name: "torch-reduce-op-variants"
+      type: func::FuncOp
+      description: "Reduces variants of ops to a smaller set of ops."
+    - name: "torch-maximize-value-semantics"
+      type: func::FuncOp
+      description: "Use value-semantic tensors where possible."
+    - name: "torch-refine-public-return"
+      type: ModuleOp
+      description: "Refine public return."
+    - name: "torch-decompose-complex-ops"
+      type: func::FuncOp
+      description: "Decompose complicated torch operations."
+    - name: "torch-scalarize-shapes"
+      type: func::FuncOp
+      description: "Takes common shape computation operations and scalarizes them."
+    - name: "torch-recompose-complex-ops"
+      type: func::FuncOp
+      description: "Recompose torch operations that have been decomposed by TorchScript."
+    - name: "torch-fuse-quantized-ops"
+      type: func::FuncOp
+      description: "QDQ: Fuse recognized QDQ op sequences."
+    - name: "torch-match-quantized-custom-ops"
+      type: func::FuncOp
+      description: "Match quantized operations that occur in different namespace."
+    - name: "torch-reify-shape-calculations"
+      type: ModuleOp
+      description: "Reify shape calculations."
+    - name: "torch-simplify-shape-calculations"
+      type: func::FuncOp
+      description: "Simplify reified shape calculations."
+    - name: "torch-reify-dtype-calculations"
+      type: ModuleOp
+      description: "Reify dtype calculations."
+    - name: "torch-simplify-dtype-calculations"
+      type: func::FuncOp
+      description: "Simplify reified dtype calculations."
+    - name: "torch-drop-abstract-interp-calculations"
+      type: func::FuncOp
+      description: "Drop reified abstract interpretation calculations."
+    - name: "torch-erase-module-initializer"
+      type: ModuleOp
+      description: "Erase the `torch.global_slot.module_initializer` op."
+    - name: "torch-lower-to-backend-contract"
+      type: ModuleOp
+      description: "Perform simplifications until the backend contract is satisfied."
+    - name: "torch-verify-backend-contract-no-decompositions"
+      type: ModuleOp
+      description: "Check that program satisfies backend contract."
+    - name: "torch-restructure-non-constant-axes"
+      type: func::FuncOp
+      description: "Ensure that every Reduction.cpp op has a constant reduction axis."
+
+
+
+pipelines:
+  tosa-to-llvm:
+    stages:
+      - name: "TOSA Conversion"
+        execute: "tosa"
+        
+      - name: "Tensor Bufferization"
+        execute: "tensor"
+        
+      - name: "Bufferization deallocation"
+        execute: "bufferization"
+
+      - name: "Linalg Conversion"
+        execute: "linalg"
+
+      - name: "vector Conversion"
+        execute: "vector"
+
+      - name: "Conversion to LLVM"
+        execute: null

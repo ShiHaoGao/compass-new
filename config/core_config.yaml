@@ -119,12 +119,7 @@ dialects:
         description: "Handle buffer deallocation for memory optimization"
         next_pass: null
         
-  torch:
-    description: "torch dialect"
-    passes:
-      - name: "convert-torch-to-linalg "
-        type: FUNC
-        description: "torch to linalg"
+
     
 pipelines:
   tosa-to-llvm:
