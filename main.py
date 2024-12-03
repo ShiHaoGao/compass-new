@@ -102,7 +102,7 @@ def main():
     setup_logging(log_level=logging.DEBUG)
     
     # 示例1：测试单个文件
-    single_file = "/home/liuyang/project/buddy-compass/compass-new/tests/torch-mlir/test1.mlir"
+    single_file = "/home/liuyang/project/buddy-compass/compass-new/tests/torch-mlir/torchtest.mlir"
     config = LoweringConfig.for_single_file(
         max_iterations=1000000,
         debug_mode=True,
