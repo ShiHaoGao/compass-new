@@ -20,7 +20,7 @@ class DynamicLowering:
         
         # 根据配置初始化组件
         self.registry = Registry(core_config_path=self.config.core_config_path,
-                                 hird_party_config_path=self.config.third_party_config_path)
+                                third_party_config_path=self.config.third_party_config_path)
         self.mlir_exec_engine = MLIRPassExecutionEngine(registry=self.registry, mlir_opt_path=self.config.mlir_opt_path)
         self.statistics = PassStatisticsCollector()
         self.history = []
