@@ -106,4 +106,14 @@ dialects:
       - name: "buffer-deallocation-pipeline"
         priority: 2
         description: ""
+
+  torch:
+    level: HIGH
+    passes:
+      - name: "-convert-torch-to-linalg "
+        priority: 1
+        description: "将Torch算子转换为Linalg算子"
+
+
+  
       

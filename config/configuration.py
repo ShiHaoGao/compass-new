@@ -59,8 +59,8 @@ class LoweringConfig:
     target_dialect: str = "llvm"
     
     # mlir-opt 路径设置
-    mlir_opt_path: Path = Path("tools/mlir-opt")
-    mlir_translate_path: Path = Path("tools/mlir-translate")
+    mlir_opt_path: Path = Path("tools/torch-mlir-opt")
+    mlir_translate_path: Path = Path("tools/buddy-translate")
     
     # 输出配置
     output_dir: Path = Path("output")

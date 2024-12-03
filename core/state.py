@@ -7,6 +7,7 @@ import json
 from core.pass_exec_engine import MLIRPassExecutionEngine
 from core.pass_registry import DialectPassRegistry
 import logging
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -357,7 +358,10 @@ class PostPassDecisionNode(Node):
         
         # # 选择最高level的可用pass                 
         # return max(self.active_dialects, key=lambda d: current_levels[d])
-        return self.active_dialects[0]
+
+
+        # return self.active_dialects[0]
+        return random.choice(self.active_dialects)
     
     def try_gen_next_node(self) -> Optional[PostDialectDecisionNode]:
         dialect_name = self.select_next_dialect()
