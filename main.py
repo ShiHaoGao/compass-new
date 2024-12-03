@@ -102,28 +102,29 @@ def main():
     setup_logging(log_level=logging.DEBUG)
     
     # # 示例1：测试单个文件
-    single_file = "/home/gaoshihao/learn/python/compass/tests/MLIRVector/vector-transfer-read.mlir"
-    config = LoweringConfig.for_single_file(
-        max_iterations=1000000,
-        debug_mode=True,
-        save_intermediate_states=True,
-        output_dir="custom_output",
-        target_dialect="llvm",
-        file_path=single_file,
-    )
-
-    # 示例2：处理目录中的所有文件（递归）
-    # config = LoweringConfig(
+    # single_file = "/home/gaoshihao/learn/python/compass/tests/MLIRAffine/affine-load.mlir"
+    # config = LoweringConfig.for_single_file(
     #     max_iterations=1000000,
     #     debug_mode=True,
     #     save_intermediate_states=True,
     #     output_dir="custom_output",
     #     target_dialect="llvm",
-    #     test_config=TestConfig(
-    #         test_path="tests/", 
-    #         recursive_search=True
-    #     )
+    #     file_path=single_file,
     # )
+
+    # 示例2：处理目录中的所有文件（递归）
+    config = LoweringConfig(
+        max_iterations=1000000,
+        debug_mode=True,
+        save_intermediate_states=True,
+        mlir_opt_path="./tools/mlir-opt"
+        output_dir="custom_output",
+        target_dialect="llvm",
+        test_config=TestConfig(
+            test_path="tests/MLIRVector/", 
+            recursive_search=True
+        )
+    )
 
     # 示例3：处理目录中的文件（非递归）
     # config = LoweringConfig(

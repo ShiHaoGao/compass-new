@@ -68,7 +68,7 @@ class MLIRPassExecutionEngine:
             passes.append(mlir_pass_obj.get_next_pass())
         passes_str = ", ".join(f'{x}' for x in passes)
         
-        if mlir_pass_obj.type == PassType.ANY:
+        if mlir_pass_obj.type == PassType.MODULE:
             pipeline = f'builtin.module({passes_str})'
         else:
             pipeline = f'builtin.module({mlir_pass_obj.type.value}({passes_str}))'

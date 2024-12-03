@@ -13,7 +13,7 @@ class PassType(Enum):
         Enum (_type_): _description_
     """
     FUNC = "func.func"
-    ANY = ""
+    MODULE = ""
 
 T = TypeVar('T', str, PassType)
 
@@ -22,7 +22,7 @@ class Pass:
     name: str
     description: str = ""
     applicable_dialects: Set[str] = field(default_factory=set)
-    type: PassType = PassType.ANY
+    type: PassType = PassType.MODULE
     next_pass: Optional[str] = None  
     
     def __post_init__(self):

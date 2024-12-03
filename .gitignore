@@ -5,6 +5,5 @@ custom_output/
 # Python cache files
 __pycache__/
 
-# # Ignore tools
-tools/mlir-opt
-tools/mlir-translate
+# Ignore tools
+tools/
