@@ -9,11 +9,14 @@ from core.pipeline import Pipeline, PipelineStage
 
     
 class Registry:
-    def __init__(self, config_path: str = "config/pass_config.yaml"):
+    def __init__(self, core_config_path: str = "config/pass_config.yaml", 
+                third_party_config_path: str = None):
         self.dialects_lookup: Dict[str, Dialect] = {}
         self.pass_lookup: Dict[str, Pass] = {}
         self.pipelines: Dict[str, Pipeline] = {}
-        self.load_config(config_path)
+        self.load_config(core_config_path)
+        if third_party_config_path:
+            self.load_config(third_party_config_path)
         
     def registry_dialects(self, config):
         if "dialects" in config:

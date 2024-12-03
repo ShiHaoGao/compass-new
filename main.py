@@ -1,7 +1,7 @@
 import os
 from search.lowering import DynamicLowering
 from utils.reporter import LoweringReporter
-from config.configuration import LoweringConfig, TestConfig
+from config.configuration import LoweringConfig, TestPathConfig
 from config.logging_config import setup_logging
 import json
 from pathlib import Path
@@ -117,10 +117,13 @@ def main():
     #     max_iterations=1000000,
     #     debug_mode=True,
     #     save_intermediate_states=True,
+    #     mlir_opt_path="./tools/mlir-opt",
     #     output_dir="custom_output",
+    #     third_party_config_path=None,
+    #     pass_config_path="config/core_config.yaml",
     #     target_dialect="llvm",
-    #     test_config=TestConfig(
-    #         test_path="tests/",
+    #     test_config=TestPathConfig(
+    #         test_path="tests/MLIRVector/", 
     #         recursive_search=True
     #     )
     # )

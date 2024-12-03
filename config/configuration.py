@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 @dataclass
-class TestConfig:
+class TestPathConfig:
     """测试相关配置"""
     # 可以是单个文件路径或目录路径
     test_path: Union[str, Path] = Path("tests/")
@@ -55,7 +55,8 @@ class LoweringConfig:
     debug_mode: bool = False
     
     # pass相关配置
-    pass_config_path: Path = Path("config/pass_config.yaml")
+    third_party_config_path: Path = None
+    core_config_path: Path = Path("config/core_config.yaml")
     target_dialect: str = "llvm"
     
     # mlir-opt 路径设置
@@ -75,7 +76,7 @@ class LoweringConfig:
     timeout: float = 300.0  # 秒
     
     # 测试配置
-    test_config: TestConfig = field(default_factory=TestConfig)
+    test_config: TestPathConfig = field(default_factory=TestPathConfig)
     
     def __post_init__(self):
         """确保路径是Path对象"""
@@ -86,7 +87,7 @@ class LoweringConfig:
         
         # 如果test_config是字典，转换为TestConfig对象
         if isinstance(self.test_config, dict):
-            self.test_config = TestConfig(**self.test_config)
+            self.test_config = TestPathConfig(**self.test_config)
             
     def find_test_files(self) -> List[Path]:
         """查找测试文件的便捷方法"""
@@ -96,6 +97,6 @@ class LoweringConfig:
     def for_single_file(cls, file_path: Union[str, Path], **kwargs) -> 'LoweringConfig':
         """创建用于单个文件测试的配置"""
         return cls(
-            test_config=TestConfig(test_path=file_path),
+            test_config=TestPathConfig(test_path=file_path),
             **kwargs
         )
