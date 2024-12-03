@@ -60,21 +60,21 @@ class Registry:
                     raise ValueError(f"Error parsing dialect {dialect_name}: {str(e)}")
 
     def registry_pipeline(self, config):
-        if "pipelines" in config:
-            for pipeline_name, pipeline_info in config["pipelines"].items():
-                stages = []
-                for stage_info in pipeline_info.get("stages", []):
-                    stage = PipelineStage(
-                        name=stage_info.get("name", ""),
-                        execute=stage_info.get("execute")
-                    )
-                    stages.append(stage)
-                
-                pipeline = Pipeline(
-                    name=pipeline_name,
-                    stages=stages
+
+        for pipeline_name, pipeline_info in config["pipelines"].items():
+            stages = []
+            for stage_info in pipeline_info.get("stages", []):
+                stage = PipelineStage(
+                    name=stage_info.get("name", ""),
+                    execute=stage_info.get("execute")
                 )
-                self.pipelines[pipeline_name] = pipeline
+                stages.append(stage)
+            
+            pipeline = Pipeline(
+                name=pipeline_name,
+                stages=stages
+            )
+            self.pipelines[pipeline_name] = pipeline
         
     def load_config(self, config_path: str):
         path = Path(config_path)
@@ -88,13 +88,12 @@ class Registry:
             if not isinstance(config, dict):
                 raise ValueError("Invalid config format")
             
-            self.dialects_lookup.clear()
-            self.pass_lookup.clear()
-            self.pipelines.clear()
+
             # Load dialects and passes
             self.registry_dialects(config)
             # Load pipelines
-            self.registry_pipeline(config)
+            if "pipelines" in config:
+                self.registry_pipeline(config)
 
         except yaml.YAMLError as e:
             raise ValueError(f"Error parsing YAML config: {e}")
