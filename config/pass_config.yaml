@@ -124,7 +124,7 @@ dialects:
     passes:
       - name: "convert-torch-to-linalg "
         type: FUNC
-        description: "将Torch算子转换为Linalg算子"
+        description: "torch to linalg"
     
 pipelines:
   tosa-to-llvm:
