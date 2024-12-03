@@ -6,5 +6,4 @@ custom_output/
 __pycache__/
 
 # # Ignore tools
-tools/mlir-opt
-tools/mlir-translate
+tools/

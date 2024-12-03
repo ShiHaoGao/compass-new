@@ -110,9 +110,12 @@ dialects:
   torch:
     level: HIGH
     passes:
-      - name: "-convert-torch-to-linalg "
+      - name: "convert-torch-to-linalg "
         priority: 1
         description: "将Torch算子转换为Linalg算子"
+        type: FUNC
+      
+
 
 
   
