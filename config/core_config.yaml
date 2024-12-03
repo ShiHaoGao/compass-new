@@ -121,23 +121,3 @@ dialects:
         
 
     
-pipelines:
-  tosa-to-llvm:
-    stages:
-      - name: "TOSA Conversion"
-        execute: "tosa"
-        
-      - name: "Tensor Bufferization"
-        execute: "tensor"
-        
-      - name: "Bufferization deallocation"
-        execute: "bufferization"
-
-      - name: "Linalg Conversion"
-        execute: "linalg"
-
-      - name: "vector Conversion"
-        execute: "vector"
-
-      - name: "Conversion to LLVM"
-        execute: null
