@@ -80,6 +80,7 @@ class MLIRPassExecutionEngine:
         ]
 
     def clean_code(self, mlir_content: str) -> Optional[str]:
+        logger.debug("Clean code!")
         cmd = [
             self.mlir_opt_path
         ]

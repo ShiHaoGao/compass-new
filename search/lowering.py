@@ -44,6 +44,8 @@ class DynamicLowering:
         with open(input_file, 'r') as f:
             initial_content = f.read()
 
+        initial_content = self.mlir_exec_engine.clean_code(initial_content)
+        
         # 解析初始状态
         initial_mlir_code_state = MLIRCodeState(content=initial_content, registry=self.registry, mlir_exec_engine=self.mlir_exec_engine)
         initial_node = InitialNode(code_state=initial_mlir_code_state)

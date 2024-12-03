@@ -268,6 +268,8 @@ class PostPassDecisionNode(Node):
         if len(self.active_dialects) == 0:
             return None
         
+        logger.debug(f"active_dialects: {self.active_dialects}")
+        
         chosen_dialect = random.choice(self.active_dialects)
         if self.code_state.registry.has_pipeline():
             dialects = self.code_state.registry.get_pipeline_by_name("tosa-to-llvm").get_stage_dialects_from(self.active_dialects)
@@ -300,7 +302,6 @@ class PostPassDecisionNode(Node):
 class InitialNode(PostPassDecisionNode):
     
     def __init__(self, code_state: MLIRCodeState):
-        code_state.clean_content()
         super().__init__(code_state=code_state, applied_pass=None)
 
         
