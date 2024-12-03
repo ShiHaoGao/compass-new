@@ -108,6 +108,8 @@ def main():
         debug_mode=True,
         save_intermediate_states=True,
         output_dir="custom_output",
+        third_party_config_path="config/triton_config.yaml",
+        core_config_path="config/core_config.yaml",
         target_dialect="llvm",
         file_path=single_file,
         mlir_opt_path = "tools/buddy-opt",

@@ -80,7 +80,9 @@ class LoweringConfig:
     
     def __post_init__(self):
         """确保路径是Path对象"""
-        # self.pass_config_path = Path(self.pass_config_path)
+        self.core_config_path = Path(self.core_config_path)
+        if self.third_party_config_path:
+            self.third_party_config_path = Path(self.third_party_config_path)
         self.output_dir = Path(self.output_dir)
         self.mlir_opt_path = Path(self.mlir_opt_path)
         self.mlir_translate_path = Path(self.mlir_translate_path)

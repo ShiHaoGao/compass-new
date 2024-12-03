@@ -267,7 +267,7 @@ class PostPassDecisionNode(Node):
         if len(self.active_dialects) == 0:
             return None
         
-        dialects = self.code_state.registry.pipelines["tosa-to-llvm"].get_stage_dialects_from(self.active_dialects)
+        dialects = self.code_state.registry.get_pipeline_by_name("tosa-to-llvm").get_stage_dialects_from(self.active_dialects)
         return dialects[0]
     
     def try_gen_next_node(self) -> Optional[PostDialectDecisionNode]:
