@@ -44,19 +44,65 @@ class MLIRPassExecutionEngine:
         解析MLIR内容中的dialect、op集合和op数量
         返回 (Dict[dialect_name, Set[op_names]], Dict[dialect_name, Counter[op_name, count]])
         """
+                # 输入验证
+        if not mlir_content or not mlir_content.strip():
+            raise ValueError("Empty MLIR content")
+        
+        cmd = [self.mlir_opt_path,
+            '--print-op-stats'
+            ]
+        
+        # logger.debug(f"apply pass command: {cmd}")
+        
+        process = subprocess.Popen(
+            cmd,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        
+        output, error = process.communicate(input=mlir_content)
+        
+        return_code = process.returncode
+        if return_code != 0:
+            logger.error(f"Command failed with error: {error}")
+        
         dialect_ops: Dict[str, Set[str]] = defaultdict(set)
         op_counts: Dict[str, Counter] = defaultdict(Counter)
         
-        pattern = r'([a-zA-Z_]+)\.([a-zA-Z_]+)'
-        matches = re.finditer(pattern, mlir_content)
-        
+        pattern = r'([a-zA-Z_]+)\.([a-zA-Z_\.]+)'
+        matches = re.finditer(pattern, error)
+
         for match in matches:
             dialect = match.group(1)
             op = match.group(2)
             dialect_ops[dialect].add(op)
             op_counts[dialect][op] += 1
+            
+        if 'builtin' in dialect_ops:
+            del dialect_ops['builtin']
         
         return dialect_ops, op_counts
+    
+    # def parse_mlir_content(self, mlir_content: str) -> Tuple[Dict[str, Set[str]], Dict[str, Counter]]:
+    #     """
+    #     解析MLIR内容中的dialect、op集合和op数量
+    #     返回 (Dict[dialect_name, Set[op_names]], Dict[dialect_name, Counter[op_name, count]])
+    #     """
+    #     dialect_ops: Dict[str, Set[str]] = defaultdict(set)
+    #     op_counts: Dict[str, Counter] = defaultdict(Counter)
+        
+    #     pattern = r'([a-zA-Z_]+)\.([a-zA-Z_\.]+)'
+    #     matches = re.finditer(pattern, mlir_content)
+        
+    #     for match in matches:
+    #         dialect = match.group(1)
+    #         op = match.group(2)
+    #         dialect_ops[dialect].add(op)
+    #         op_counts[dialect][op] += 1
+        
+    #     return dialect_ops, op_counts
 
     def _build_command(self, mlir_pass: str) -> List[str]:
         """构建完整的命令"""

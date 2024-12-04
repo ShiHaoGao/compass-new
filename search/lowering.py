@@ -44,6 +44,7 @@ class DynamicLowering:
         with open(input_file, 'r') as f:
             initial_content = f.read()
 
+        # 清理源文件中注释
         initial_content = self.mlir_exec_engine.clean_code(initial_content)
         
         # 解析初始状态
