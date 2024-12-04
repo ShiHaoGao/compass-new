@@ -75,6 +75,10 @@ class MLIRPassExecutionEngine:
             op = match.group(2)
             dialect_ops[dialect].add(op)
             op_counts[dialect][op] += 1
+
+                
+        if 'builtin' in dialect_ops:
+            del dialect_ops['builtin']
         
         return dialect_ops, op_counts
 
