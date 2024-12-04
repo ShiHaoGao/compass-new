@@ -5,6 +5,7 @@ import hashlib
 from core.pass_exec_engine import MLIRPassExecutionEngine
 from core.Registry import Registry
 import logging
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ class MLIRCodeState:
         
     def _gen_dialects_and_ops(self):
         self.dialects, self.op_statistics = self.mlir_exec_engine.parse_mlir_content(self.content)
+        logger.warning(self.dialects)
 
     def _gen_available_dialects_and_passes(self):
         self.available_dialects = self.dialects.keys()

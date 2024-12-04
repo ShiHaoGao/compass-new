@@ -51,8 +51,9 @@ class MLIRPassExecutionEngine:
         cmd = [self.mlir_opt_path,
             '--print-op-stats'
             ]
-        
+
         # logger.debug(f"apply pass command: {cmd}")
+
         
         process = subprocess.Popen(
             cmd,
@@ -63,11 +64,11 @@ class MLIRPassExecutionEngine:
         )
         
         output, error = process.communicate(input=mlir_content)
-        
+       
         return_code = process.returncode
         if return_code != 0:
             logger.error(f"Command failed with error: {error}")
-        
+
         dialect_ops: Dict[str, Set[str]] = defaultdict(set)
         op_counts: Dict[str, Counter] = defaultdict(Counter)
         
@@ -79,7 +80,7 @@ class MLIRPassExecutionEngine:
             op = match.group(2)
             dialect_ops[dialect].add(op)
             op_counts[dialect][op] += 1
-            
+
         if 'builtin' in dialect_ops:
             del dialect_ops['builtin']
         
@@ -103,6 +104,7 @@ class MLIRPassExecutionEngine:
     #         op_counts[dialect][op] += 1
         
     #     return dialect_ops, op_counts
+
 
     def _build_command(self, mlir_pass: str) -> List[str]:
         """构建完整的命令"""
@@ -176,3 +178,4 @@ class MLIRPassExecutionEngine:
             return None
             
         return output
+    

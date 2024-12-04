@@ -25,7 +25,7 @@ def setup_logging(
         os.makedirs(log_dir)
     
     # Generate log filename with timestamp
-    timestamp = datetime.now().strftime('%Y%m%d')
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
     log_filename = os.path.join(log_dir, f'app_{timestamp}.log')
     
     # Create formatters
