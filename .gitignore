@@ -1,9 +1,13 @@
 # log dirs
-logs/
+*logs/
 custom_output/
 
 # Python cache files
 __pycache__/
 
-# # Ignore tools
+
+# Ignore tools
 tools/
+
+*td
+

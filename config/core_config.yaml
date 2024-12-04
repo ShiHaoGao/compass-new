@@ -93,13 +93,6 @@ dialects:
       - name: "expand-strided-metadata"
         description: "Expand memref operations into easier to analyze constructs"
         next_pass: "lower-affine"
-
-  builtin:
-    description: "builtin dialect"
-    passes:
-      - name: "reconcile-unrealized-casts"
-        description: "Simplify and eliminate unrealized conversion casts"
-        next_pass: null
   
   llvm:
     description: "llvm dialect"
