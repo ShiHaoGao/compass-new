@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 from .state import MLIRCodeState
-
+import random
 import logging
 
 logger = logging.getLogger(__name__)
@@ -191,8 +191,9 @@ class PostDialectDecisionNode(Node):
         if len(self.active_passes) == 0:
             return None
 
+        chosen_pass = random.choice(self.active_passes)
         # 选择第一个可用的pass
-        return self.active_passes[0]
+        return chosen_pass
 
     def try_gen_next_node(self) -> Optional['PostPassDecisionNode']:
         
@@ -267,8 +268,13 @@ class PostPassDecisionNode(Node):
         if len(self.active_dialects) == 0:
             return None
         
-        dialects = self.code_state.registry.get_pipeline_by_name("tosa-to-llvm").get_stage_dialects_from(self.active_dialects)
-        return dialects[0]
+        logger.debug(f"active_dialects: {self.active_dialects}")
+        
+        chosen_dialect = random.choice(self.active_dialects)
+        if self.code_state.registry.has_pipeline():
+            dialects = self.code_state.registry.get_pipeline_by_name("tosa-to-llvm").get_stage_dialects_from(self.active_dialects)
+            chosen_dialect = random.choice(dialects)
+        return chosen_dialect
     
     def try_gen_next_node(self) -> Optional[PostDialectDecisionNode]:
         dialect_name = self.select_next_dialect()
@@ -296,7 +302,6 @@ class PostPassDecisionNode(Node):
 class InitialNode(PostPassDecisionNode):
     
     def __init__(self, code_state: MLIRCodeState):
-        code_state.clean_content()
         super().__init__(code_state=code_state, applied_pass=None)
 
         

@@ -1,0 +1,255 @@
+dialects:
+  aig:
+    description: "AIG dialect for And-Inverter Graphs"
+    passes:
+      - name: "convert-comb-to-aig"
+        description: "Lower Comb ops to AIG ops"
+        type: MODULE
+        next_pass: "convert-aig-to-comb"
+      - name: "convert-aig-to-comb"
+        description: "Lower AIG ops to Comb ops"
+        type: MODULE
+        next_pass: null
+
+  arc:
+    description: "Arc dialect for state transfer arcs"
+    passes:
+      - name: "convert-to-arcs"
+        description: "Outline logic between registers into state transfer arcs"
+        type: MODULE
+        next_pass: "lower-arc-to-llvm"
+      - name: "lower-arc-to-llvm"
+        description: "Lower state transfer arc representation to LLVM"
+        type: MODULE
+        next_pass: null
+
+  calyx:
+    description: "Calyx dialect for hardware synthesis"
+    passes:
+      - name: "lower-scf-to-calyx"
+        description: "Lower SCF/Standard to Calyx"
+        type: MODULE
+        next_pass: "lower-calyx-to-fsm"
+      - name: "lower-calyx-to-fsm"
+        description: "Lower Calyx to FSM"
+        type: FUNC
+        next_pass: "materialize-calyx-to-fsm"
+      - name: "materialize-calyx-to-fsm"
+        description: "Materialize FSM embedded inside Calyx component"
+        type: FUNC
+        next_pass: "calyx-remove-groups-fsm"
+      - name: "calyx-remove-groups-fsm"
+        description: "Perform FSM outlining and group removal"
+        type: FUNC
+        next_pass: null
+      - name: "lower-loopschedule-to-calyx"
+        description: "Lower LoopSchedule to Calyx"
+        type: MODULE
+        next_pass: null
+
+  chirrtl:
+    description: "CHIRRTL dialect for Chisel IR transformation"
+    passes:
+      - name: "export-chisel-interface"
+        description: "Emit a Chisel interface to a FIRRTL circuit"
+        type: MODULE
+        next_pass: null
+      - name: "export-split-chisel-interface"
+        description: "Emit a Chisel interface to a directory of files"
+        type: MODULE
+        next_pass: null
+
+  comb:
+    description: "Comb dialect for combinational logic"
+    passes:
+      - name: "convert-comb-to-arith"
+        description: "Convert combinational ops and constants into arith ops"
+        type: MODULE
+        next_pass: null
+      - name: "convert-comb-to-aig"
+        description: "Lower Comb ops to AIG ops"
+        type: MODULE
+        next_pass: null
+      - name: "convert-comb-to-smt"
+        description: "Convert combinational ops and constants to SMT ops"
+        type: MODULE
+        next_pass: null
+
+  dc:
+    description: "DC dialect for delay calculations"
+    passes:
+      - name: "lower-dc-to-hw"
+        description: "Lower DC to HW"
+        type: MODULE
+        next_pass: null
+
+  debug:
+    description: "Debug dialect for debugging tools"
+
+  emit:
+    description: "Emit dialect for output generation"
+
+  esi:
+    description: "ESI dialect for Elastic Silicon Interfaces"
+
+  firrtl:
+    description: "FIRRTL dialect for hardware description and transformations"
+    passes:
+      - name: "lower-firrtl-to-hw"
+        description: "Lower FIRRTL to HW"
+        type: MODULE
+        next_pass: "export-verilog"
+
+  fsm:
+    description: "FSM dialect for finite state machines"
+    passes:
+      - name: "convert-fsm-to-sv"
+        description: "Convert FSM to SystemVerilog"
+        type: MODULE
+        next_pass: null
+
+  hw:
+    description: "HW dialect for general hardware constructs"
+    passes:
+      - name: "lower-hw-to-sv"
+        description: "Convert HW to SystemVerilog"
+        type: MODULE
+        next_pass: "export-verilog"
+      - name: "convert-hw-to-llvm"
+        description: "Convert HW to LLVM"
+        type: MODULE
+        next_pass: null
+      - name: "convert-hw-to-systemc"
+        description: "Convert HW to SystemC"
+        type: MODULE
+        next_pass: null
+
+  hwarith:
+    description: "HWArith dialect for arithmetic operations in hardware"
+    passes:
+      - name: "lower-hwarith-to-hw"
+        description: "Lower HWArith to HW/Comb"
+        next_pass: null
+
+  handshake:
+    description: "Handshake dialect for asynchronous communication"
+    passes:
+      - name: "lower-handshake-to-hw"
+        description: "Lower Handshake to HW"
+        next_pass: null
+
+  interop:
+    description: "Interop dialect for system interoperability"
+
+  kanagawa:
+    description: "Kanagawa dialect for advanced flow control"
+
+  llhd:
+    description: "LLHD dialect for low-level hardware description"
+
+  loopschedule:
+    description: "LoopSchedule dialect for scheduling optimizations"
+
+  ltl:
+    description: "LTL dialect for linear temporal logic"
+    passes:
+      - name: "lower-ltl-to-core"
+        description: "Convert LTL and Verif to Core"
+        next_pass: null
+
+  moore:
+    description: "Moore dialect for Moore state machines"
+    passes:
+      - name: "convert-moore-to-core"
+        description: "Convert Moore to Core"
+        next_pass: null
+
+  msft:
+    description: "MSFT dialect for Microsoft-specific constructs"
+    passes: []
+
+  om:
+    description: "OM dialect for object models"
+    passes: []
+
+  pipeline:
+    description: "Pipeline dialect for hardware pipelining"
+    passes:
+      - name: "lower-pipeline-to-hw"
+        description: "Lower Pipeline to HW"
+        next_pass: null
+
+  seq:
+    description: "Seq dialect for sequential logic"
+    passes:
+      - name: "lower-seq-to-sv"
+        description: "Lower sequential FIRRTL ops to SystemVerilog"
+        next_pass: null
+
+  sim:
+    description: "Sim dialect for simulation constructs"
+    passes:
+      - name: "lower-sim-to-sv"
+        description: "Lower simulator-specific operations to SystemVerilog"
+        type: MODULE
+        next_pass: null
+
+  smt:
+    description: "SMT dialect for satisfiability modulo theories"
+    passes:
+      - name: "convert-comb-to-smt"
+        description: "Convert combinational ops and constants to SMT ops"
+        type: MODULE
+        next_pass: null
+      - name: "convert-hw-to-smt"
+        description: "Convert HW ops and constants to SMT ops"
+        type: MODULE
+        next_pass: null
+
+  sv:
+    description: "SV dialect for SystemVerilog constructs"
+    passes:
+      - name: "lower-hw-to-sv"
+        description: "Convert HW constructs to SystemVerilog"
+        type: MODULE
+        next_pass: null
+
+  systemc:
+    description: "SystemC dialect for SystemC-based designs"
+    passes:
+      - name: "convert-hw-to-systemc"
+        description: "Convert HW to SystemC"
+        next_pass: null
+
+  verif:
+    description: "Verif dialect for verification tasks"
+    passes:
+      - name: "lower-verif-to-sv"
+        description: "Convert Verif constructs to SystemVerilog"
+        type: MODULE
+        next_pass: null
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
