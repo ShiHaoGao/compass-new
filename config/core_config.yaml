@@ -104,6 +104,8 @@ dialects:
   llvm:
     description: "llvm dialect"
 
+  
+
   tensor:
     description: "Tensor operations dialect"
     passes:
@@ -116,6 +118,14 @@ dialects:
     passes:
       - name: "buffer-deallocation-pipeline"
 
+        description: "Handle buffer deallocation for memory optimization"
+        next_pass: null
+
+  ml_program:
+    description: "Bufferization dialect for memory management"
+    passes:
+      - name: "-mlprogram-pipeline-globals"
+        type: FUNC
         description: "Handle buffer deallocation for memory optimization"
         next_pass: null
         

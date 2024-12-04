@@ -102,7 +102,8 @@ def main():
     setup_logging(log_level=logging.DEBUG)
     
     # 示例1：测试单个文件
-    single_file = "/home/liuyang/project/buddy-compass/compass-new/tests/torch-mlir/torchtest.mlir"
+    # single_file = "/home/liuyang/project/buddy-compass/compass-new/tests/torch-mlir/linalg.mlir"
+    single_file ="/home/liuyang/project/buddy-compass/compass-new/tests/MLIRAffine/affine-load.mlir"
     config = LoweringConfig.for_single_file(
         max_iterations=1000000,
         debug_mode=True,
@@ -112,7 +113,7 @@ def main():
         core_config_path="config/core_config.yaml",
         target_dialect="llvm",
         file_path=single_file,
-        mlir_opt_path = "tools/torch-mlir-opt"
+        mlir_opt_path = "tools/buddy-opt"
     )
 
     # 示例2：处理目录中的所有文件（递归）
