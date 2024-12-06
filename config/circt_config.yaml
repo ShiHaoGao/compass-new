@@ -11,6 +11,14 @@ dialects:
         type: MODULE
         next_pass: null
 
+  affine:
+    description: ""
+    passes:
+      - name: "convert-affine-to-loopschedule"
+        description: "Convert Affine dialect to LoopSchedule scheduled loops"
+        type: FUNC
+        next_pass: null
+
   arc:
     description: "Arc dialect for state transfer arcs"
     passes:

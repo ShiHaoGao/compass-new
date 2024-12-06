@@ -42,10 +42,11 @@ class DynamicLowering:
                 return True
             return False
         elif self.config.target_type == "custom":
-            for d in dialects:
-                if d not in self.config.target_dialects:
-                    return False
-            return True
+            if all(item in dialects for item in self.config.target_dialects) \
+                and self.config.illegal_dialects not in dialects:
+                return True
+            else:
+                return False
         else:
             logger.error("Target type is illegal!")
 

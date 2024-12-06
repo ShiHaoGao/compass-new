@@ -61,6 +61,7 @@ class LoweringConfig:
     # Target配置
     target_type: str = "custom"
     target_dialects: Optional[List[str]] = field(default_factory=list)
+    illegal_dialects: Optional[List[str]] = field(default_factory=list)
     
     # mlir-opt 路径设置
     mlir_opt_path: Path = Path("tools/mlir-opt")
@@ -102,7 +103,9 @@ class LoweringConfig:
             self.target_dialects = ["llvm"]
         elif self.target_type == "custom":
             if len(self.target_dialects) == 0:
-                logger.error("Target was not setted!")
+                logger.error("Target dialects must be setted!")
+            if len(self.illegal_dialects) == 0:
+                logger.error("Illegal dialects must be setted!")
                 
             
         self.output_dir = Path(self.output_dir)
