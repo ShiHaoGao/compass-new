@@ -1,227 +1,243 @@
 dialects:
-  Unspecified:
+
+  global:
+    passes:
+    - name: iree-flow-convert-to-flow
+      description: Convert operations to flow. Currently just a test pass.
+      type: MODULE
+      next_pass: null
+    - name: iree-stream-conversion
+      description: Converts from flow and other input dialects into the stream dialect.
+      type: MODULE
+      next_pass: null
+    - name: iree-vmvx-conversion
+      description: Converts from various dialects to the VMVX dialect.
+      type: MODULE
+      next_pass: null
+
+  stablehlo:
     description: Unspecified dialect
     passes:
     - name: iree-stablehlo-to-iree-input
       description: Converts StableHLO input to IREE input dialects.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-stablehlo-to-linalg-ext
-      description: Converts from StableHLO ops to LinalgExt ops and distribute to
-        Flow ops.
-      type: mlir::FunctionOpInterface
+      description: Converts from StableHLO ops to LinalgExt ops and distribute to Flow ops.
+      type: FUNC
       next_pass: null
     - name: iree-stablehlo-to-linalg
       description: Converts from StableHLO ops to Linalg ops on.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-stablehlo-legalize-control-flow
       description: Legalizes from StableHLO control flow to SCF control flow.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-stablehlo-legalize-chlo
       description: Legalizes from CHLO ops flow to StableHLO and Shape ops.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-stablehlo-legalize-custom-calls
       description: Legalizes specialized custom calls to decomposed implementations.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-stablehlo-legalize-shape-computations
       description: Legalizes StableHLO shape operations to core-mlir operations.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-stablehlo-verify-compiler-input-legality
       description: Verifies that only supported IR constructs are passed to the compiler.
-      type: ModuleOp
-      next_pass: null
-    - name: iree-check-vhlostablehlo-mix-usage
-      description: Check and report an error when VHLO and StableHLO are used in the
-        same module.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-stablehlo-to-stablehlo-preprocessing
       description: Applies IREE-specific stablehlo to stablehlo preprocessing transformations.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-stablehlo-canonicalize
       description: Canonicalizes StableHLO operations.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-stablehlo-preprocessing-dot-general-to-dot
       description: Lowers general dot to a non-batched dot when possible.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-stablehlo-preprocessing-einsum-to-dot-general
       description: Legalizes einsum ops to general dot ops.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-stablehlo-preprocessing-flatten-cfg-tuples
       description: Flattens tuples in the CFG form of StableHLO.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-stablehlo-preprocessing-flatten-scf-tuples
       description: Flattens tuples in the SCF form of StableHLO.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-stablehlo-preprocessing-gather-to-torch-index-select
       description: Legalizes gathers to a torch index select.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-stablehlo-preprocessing-lower-complex
       description: Lowers complex operations into non-complex operations.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-stablehlo-preprocessing-unfuse-batch-norm
       description: Materializes 'broadcast_dimensions' attributes.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
+  
+  torch_c:
+    passes:
     - name: torch-func-backend-type-conversion
       description: Partial type conversion pass analogous in scope to the upstream
         `func-bufferize` pass.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
     - name: torch-func-backend-type-conversion-for-stablehlo
       description: Partial type conversion pass analogous in scope to the upstream
         `func-bufferize` pass.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
     - name: torch-finalizing-backend-type-conversion
       description: Analogous in scope to the upstream `finalizing-bufferize` pass.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: torch-finalizing-backend-type-conversion-for-stablehlo
       description: Analogous in scope to the upstream `finalizing-bufferize` pass.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: torch-unpack-quant-tensor
       description: Unpack quantized int4 tensor from int8 container.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
-  gpu:
+    - name: torch-verify-tosa-backend-contract
+      description: Verifies conformity to the linalg-on-tensors backend contract.
+      type: MODULE
+      next_pass: null
+
+  iree_gpu:
     description: gpu dialect
     passes:
     - name: iree-gpu-combine-barrier-regions
       description: Combines `iree_gpu.barrier_region` ops.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-gpu-concretize-mma-shapes
-      description: Expands the inner dimensions of iree_gpu.multi_mma ops to match
-        the thread layout.
-      type: mlir::FunctionOpInterface
+      description: Expands the inner dimensions of iree_gpu.multi_mma ops to match the thread layout.
+      type: FUNC
       next_pass: null
     - name: iree-gpu-distribute-mma-to-lanes
       description: Distributes iree_gpu.multi_mma ops to lanes.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-gpu-lower-ops
       description: Post bufferization lowerings of iree_gpu ops before late lowerings.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-gpu-unroll-to-intrinsics
       description: Unrolls iree_gpu.multi_mma ops to their inner vector size.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-gpu-vectorize-ops
       description: Vectorizes then lowers a few iree_gpu ops before vectorization.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
+
   iree_vector_ext:
     description: iree_vector_ext dialect
     passes:
     - name: iree-vector-ext-vectorize-ops
       description: Vectorizes then lowers a few iree_vector_ext ops before vectorization.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-vector-ext-fold-unit-extent-dims
       description: Folds unit dims for iree_vector_ext ops.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
-  Flow:
+
+  flow:
     description: Flow dialect
     passes:
     - name: iree-flow-annotate-dispatches
       description: Annotates executable dispatches based on their contents.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-flow-canonicalize
       description: Flow specific canonicalization pass.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-flow-capture-dynamic-dims
       description: Captures dynamic shape dimensions required by dispatch operands/results
         and control flow operations.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-flow-cleanup-tensor-shapes
       description: Cleans up any remaining tensor shape metadata after lowering.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-convert-mesh-to-flow
       description: Convert Mesh dialect operations to flow.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
-    - name: iree-flow-convert-to-flow
-      description: Convert operations to flow. Currently just a test pass.
-      type: ModuleOp
-      next_pass: null
+
     - name: iree-flow-deduplicate-executables
       description: Deduplicates executables that are identical.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-flow-dump-dispatch-graph-pass
       description: Dump visualization of dispatches within the program.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-flow-export-benchmark-funcs-pass
       description: Exports all functions and dispatch executables as `() -> ()` benchmark
         funcs.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-flow-initialize-empty-tensors
       description: Initialize all empty tensors after dispatch formation to zero or
         uninitialized allocations.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-flow-inject-dispatch-tracing
       description: Injects tracing markers for dispatch operation tensor inputs and
         outputs.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-flow-inject-tensor-tracing
       description: Injects tensor tracing on ops annotated with `iree.tensor.trace`.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-flow-insert-debug-target-at-symbol
       description: Crops and/or traces the program at the specified symbol.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-flow-insert-debug-target-at-ordinal
       description: Crops and/or traces the program at the specified ordinal.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-flow-outline-constants
       description: Outlines tensor constants throughout the program into globals initialized
         with stream ops.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-flow-outline-dispatch-externs
       description: Outlines external dispatches into executables.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-flow-outline-dispatch-regions
       description: Outlines dispatch regions into executables.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-top-level-scf-to-cfg
       description: Converts non-nested SCF constructs to CFG (not traversing into
         opaque operations).
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-verify-input-legality
       description: Checks the legality of the IR at the start of IREE flow transformation
         pipeline.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
   hal:
     description: hal dialect
@@ -229,60 +245,60 @@ dialects:
     - name: iree-hal-conversion
       description: Converts from stream and other intermediate dialects into the hal
         dialect.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-assign-legacy-target-devices
       description: Assigns the HAL devices the module will target to the given list
         of targets.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-assign-target-devices
       description: Assigns the HAL devices the module will target to the given list
         of target specifications.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-materialize-target-devices
       description: Materializes global device handles based on a `hal.device.targets`
         spec.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-resolve-device-promises
       description: Resolves `#hal.device.promise` attributes to their devices.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-resolve-device-aliases
       description: Resolves `#hal.device.alias` attributes to their expanded configurations.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-verify-devices
       description: Verifies that all devices can be targeted with the available compiler
         plugins.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-fixup-legacy-sync
       description: Applies fixups to the program for when using legacy HAL devices.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-inline-memoize-regions
       description: Inlines `hal.device.memoize` regions into their parent region.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-outline-memoize-regions
       description: Outlines `hal.device.memoize` regions and creates global resources.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-memoize-device-queries
       description: Finds hal.device.query ops and creates variables initialized on
         startup.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-materialize-interfaces
       description: Defines hal.executable variants for stream.executable ops.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-substitute-executables
       description: Substitutes hal.executable ops with files on disk.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-preprocess-executables-with-pipeline
       description: Preprocess each executable with an MLIR pass pipeline.
@@ -316,19 +332,19 @@ dialects:
       next_pass: null
     - name: iree-hal-prune-executables
       description: Prunes executable variants and exports that are not referenced.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-link-all-executables
       description: Links hal.executable ops into one or more hal.executable ops.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-link-target-executables
       description: Links executables for the specified target backend.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-resolve-export-ordinals
       description: Resolves symbolic hal.executable.export references to ordinals.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-serialize-all-executables
       description: Converts hal.executable.variants to one or more hal.executable.binary
@@ -339,40 +355,37 @@ dialects:
       description: Serializes executables for the specified target backend.
       type: IREE::HAL::ExecutableOp
       next_pass: null
-  IREE::HAL:
-    description: IREE::HAL dialect
-    passes:
     - name: iree-hal-materialize-dispatch-instrumentation
       description: Adds dispatch instrumentation for both host and device prior to
         materializing interfaces so that the higher-level stream dialect can be used
         to easily mutate the dispatch sites, executable exports, and resources used
         for instrumentation storage.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-initialize-devices
       description: Initializes each global `!hal.device` based on the specification
         attribute by building initializers that enumerate and select the appropriate
         device.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-materialize-resource-caches
       description: Scans the program for resource lookups such as `hal.executable.lookup`
         and materializes globals initialized on startup. The original lookup ops are
         replaced with global loads of the cached resources.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-elide-redundant-commands
       description: Identifies sequences of stateful command buffer operations such
         as `hal.command_buffer.push_descriptor_set` that set redundant state that
         arise from trivial conversion from the stateless stream dialect and removes
         them to reduce binary size and runtime overhead.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-capture-executable-sources
       description: Captures a source listing of each hal.executable.variant and attaches
         the source to the variant embedded in the IR. Entry points are assigned locations
         in the IR relative to the captured source.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-dump-executable-sources
       description: Dumps a source listing of each hal.executable and updates the source
@@ -380,454 +393,438 @@ dialects:
         of each executable prior to translation and gives downstream tools that can
         display source information (Tracy, perf, etc) something more useful than the
         entire original source program.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-dump-executable-benchmarks
       description: Dumps one MLIR file per hal.executable containing the executable
         contents and the host code required to dispatch them with fake buffers and
         operands. These benchmarks can be run with the `iree-benchmark-module` tool
         to microbenchmark individual dispatches outside of the whole program context.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-strip-executable-contents
       description: A debugging pass for stripping translated executable contents (LLVM
         dialect, SPIR-V dialect, etc) to reduce IR size and noise from the device-only
         code.
-      type: mlir::ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-hal-repeat-dispatches
       description: Finds all hal.command_buffer.dispatch ops and repeats them the
         specified number of times by cloning them and inserting a barrier. This is
         extremely unreliable and nearly always creates incorrect programs that have
         wildly incorrect end-to-end execution timings.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
-  linalg:
+
+  iree_linalg_ext:
     description: linalg dialect
     passes:
     - name: iree-linalg-ext-to-loops
       description: Convert LinalgExt ops to loops and Linalg ops.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-linalg-pad-contraction-to-block-size
       description: Pads contraction (matmul) ops to next multiple of block size.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
     - name: iree-linalg-ext-topk-split-reduction
       description: Topk split reduction pass with a map-reduce style of parallelizing
         a Topk Op.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-linalg-ext-decompose-im2col
       description: Decomposes im2col ops into insert and extract slice ops.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-linalg-ext-decompose-winograd
       description: Decomposes winograd transform ops into linalg ops.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-linalg-ext-convert-conv2d-to-im2col-op
       description: Convert linalg convolution ops to im2col gemm based implementation.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-linalg-ext-convert-conv2d-to-winograd
       description: Convert linalg convolution ops to winograd based implementation.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-linalg-ext-decompose-attention
       description: Decomposes attention op into a sequence of linalg ops.
-      type: mlir::FunctionOpInterface
+      type: FUNC
       next_pass: null
     - name: iree-linalg-ext-convert-attention-to-online-attention
       description: Converts attention op to online_attention op.
-      type: ModuleOp
+      type: MODULE
       next_pass: null
-    - name: torch-verify-linalg-on-tensors-backend-contract
-      description: Verifies conformity to the linalg-on-tensors backend contract.
-      type: ModuleOp
-      next_pass: null
-    - name: torch-convert-custom-quant-op
-      description: Convert torch custom quant op to linalg.
-      type: mlir::FunctionOpInterface
-      next_pass: null
+
   stream:
     description: stream dialect
     passes:
-    - name: iree-stream-conversion
-      description: Converts from flow and other input dialects into the stream dialect.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-stream-encode-host-tensors
-      description: Encodes tensors into storage formats based on affinity and target
-        support.
-      type: ModuleOp
-      next_pass: null
-    - name: iree-stream-encode-device-tensors
-      description: Encodes tensors into binary formats based on affinity and target
-        support.
-      type: ModuleOp
-      next_pass: null
-    - name: iree-stream-materialize-builtins
-      description: Materialize dispatches to builtin executables where required.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-stream-materialize-copy-on-write
-      description: "Materializes copy-on-write (\U0001F404) behavior as explicit ops."
-      type: ModuleOp
-      next_pass: null
-    - name: iree-stream-elide-async-copies
-      description: Elides copies when they are not performing meaningful work.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-stream-emplace-allocations
-      description: Emplaces transient tensor allocations to remove copies.
-      type: ModuleOp
-      next_pass: null
-    - name: iree-stream-refine-usage
-      description: Refines resource usage bits and inserts transfers where appropriate.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-stream-schedule-execution
-      description: Identifies and groups asynchronous operations into executable regions
-        within function-like regions.
-      type: mlir::CallableOpInterface
-      next_pass: null
-    - name: iree-stream-schedule-concurrency
-      description: Identifies and groups asynchronous operations within executable
-        regions that can run concurrently and groups them into streams.
-      type: mlir::CallableOpInterface
-      next_pass: null
-    - name: iree-stream-propagate-timepoints
-      description: Materializes timepoints and sinks them to consumers throughout
-        the whole program.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-stream-elide-timepoints
-      description: Elides timepoints that are known to be covered by dependent timepoints.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-stream-schedule-allocation
-      description: Allocates resources and converts to explicit stream commands.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-stream-pack-constants
-      description: Packs and allocates backing storage for fused constant resources.
-      type: mlir::CallableOpInterface
-      next_pass: null
-    - name: iree-stream-layout-slices
-      description: Lays out packed slices and produces arithmetic required for all
-        offsets.
-      type: mlir::CallableOpInterface
-      next_pass: null
-    - name: iree-stream-fold-uniform-operands
-      description: Folds redundant and uniformly constant dispatch operands.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-stream-fuse-dispatch-bindings
-      description: Fuses bindings to the same underlying storage to reduce binding
-        count.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-stream-specialize-dispatches
-      description: Specializes executables by inlining/fusing operands based on dispatch
-        sites.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-stream-annotate-dispatch-arguments
-      description: Annotates dispatch arguments with potential values derived from
-        dispatch sites.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-stream-annotate-dispatch-assumptions
-      description: Adds util.assume.* op to executables from all dispatch sites.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-stream-pack-dispatch-operands
-      description: Packs stream dispatch operands into i32 push constants.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-stream-annotate-affinities
-      description: Annotates affinities on all ops for debugging.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-stream-dump-statistics
-      description: Dumps stream dialect usage information to a file.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-stream-verify-input
-      description: Verifies that input dialects are supported by the streams dialect.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-stream-verify-affinities
-      description: Verifies that all operations have affinities assigned (directly
-        or indirectly).
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-stream-verify-lowering-to-tensors
-      description: Verifies that input dialects are converted to stream.tensor.* ops.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-stream-verify-lowering-to-async-resources
-      description: Verifies that all stream.tensor.* ops and types are fully lowered
-        to stream.async.* resource ops.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-stream-verify-lowering-to-async
-      description: Verifies that all stream.tensor.* ops and types are fully lowered
-        to stream.async.* ops and all resources have an assigned lifetime.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-stream-verify-async-access-ranges
-      description: Verifies that stream.async.* access ranges are in bounds where
-        possible.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-stream-verify-lowering-to-cmd
-      description: Verifies that all stream.async.* ops and types are fully lowered
-        to stream.cmd.* ops.
-      type: mlir::ModuleOp
-      next_pass: null
-  iree:
-    description: iree dialect
+      - name: iree-stream-encode-host-tensors
+        description: Encodes tensors into storage formats based on affinity and target
+          support.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-encode-device-tensors
+        description: Encodes tensors into binary formats based on affinity and target
+          support.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-materialize-builtins
+        description: Materialize dispatches to builtin executables where required.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-materialize-copy-on-write
+        description: "Materializes copy-on-write (\U0001F404) behavior as explicit ops."
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-elide-async-copies
+        description: Elides copies when they are not performing meaningful work.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-emplace-allocations
+        description: Emplaces transient tensor allocations to remove copies.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-refine-usage
+        description: Refines resource usage bits and inserts transfers where appropriate.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-schedule-execution
+        description: Identifies and groups asynchronous operations into executable regions
+          within function-like regions.
+        type: FUNC
+        next_pass: null
+      - name: iree-stream-schedule-concurrency
+        description: Identifies and groups asynchronous operations within executable
+          regions that can run concurrently and groups them into streams.
+        type: FUNC
+        next_pass: null
+      - name: iree-stream-propagate-timepoints
+        description: Materializes timepoints and sinks them to consumers throughout
+          the whole program.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-elide-timepoints
+        description: Elides timepoints that are known to be covered by dependent timepoints.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-schedule-allocation
+        description: Allocates resources and converts to explicit stream commands.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-pack-constants
+        description: Packs and allocates backing storage for fused constant resources.
+        type: FUNC
+        next_pass: null
+      - name: iree-stream-layout-slices
+        description: Lays out packed slices and produces arithmetic required for all
+          offsets.
+        type: FUNC
+        next_pass: null
+      - name: iree-stream-fold-uniform-operands
+        description: Folds redundant and uniformly constant dispatch operands.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-fuse-dispatch-bindings
+        description: Fuses bindings to the same underlying storage to reduce binding
+          count.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-specialize-dispatches
+        description: Specializes executables by inlining/fusing operands based on dispatch
+          sites.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-annotate-dispatch-arguments
+        description: Annotates dispatch arguments with potential values derived from
+          dispatch sites.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-annotate-dispatch-assumptions
+        description: Adds util.assume.* op to executables from all dispatch sites.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-pack-dispatch-operands
+        description: Packs stream dispatch operands into i32 push constants.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-annotate-affinities
+        description: Annotates affinities on all ops for debugging.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-dump-statistics
+        description: Dumps stream dialect usage information to a file.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-verify-input
+        description: Verifies that input dialects are supported by the streams dialect.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-verify-affinities
+        description: Verifies that all operations have affinities assigned (directly
+          or indirectly).
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-verify-lowering-to-tensors
+        description: Verifies that input dialects are converted to stream.tensor.* ops.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-verify-lowering-to-async-resources
+        description: Verifies that all stream.tensor.* ops and types are fully lowered
+          to stream.async.* resource ops.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-verify-lowering-to-async
+        description: Verifies that all stream.tensor.* ops and types are fully lowered
+          to stream.async.* ops and all resources have an assigned lifetime.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-verify-async-access-ranges
+        description: Verifies that stream.async.* access ranges are in bounds where
+          possible.
+        type: MODULE
+        next_pass: null
+      - name: iree-stream-verify-lowering-to-cmd
+        description: Verifies that all stream.async.* ops and types are fully lowered
+          to stream.cmd.* ops.
+        type: MODULE
+        next_pass: null
+  
+  util:
+    description: util dialect
     passes:
-    - name: iree-util-apply-patterns
-      description: Applies some risky/IREE-specific canonicalization patterns.
-      type: ModuleOp
-      next_pass: null
-    - name: iree-util-combine-initializers
-      description: Combines global initializers into one.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-util-drop-compiler-hints
-      description: Deletes operations that have no runtime equivalent and are only
-        used in the compiler.
-      type: ModuleOp
-      next_pass: null
-    - name: iree-util-dump-module
-      description: Dumps the module IR to the given file path in either textual (.mlir)
-        or binary (.mlirbc) format.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-util-fixed-point-iterator
-      description: Iterates a sub-pipeline to a fixed point.
-      type: ModuleOp
-      next_pass: null
-    - name: iree-util-ipo
-      description: Performs basic inter-procedural optimization.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-util-optimize-int-arithmetic
-      description: Optimizes integer arithmetic using a variety of dataflow analysis
-        and patterns.
-      type: ModuleOp
-      next_pass: null
-    - name: iree-util-propagate-subranges
-      description: Propagates resource subranges across the program.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-util-strip-and-splat-constants
-      description: Strips constant util.global ops and replaces them with splats.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-util-strip-debug-ops
-      description: Strips debug ops, like assertions.
-      type: ModuleOp
-      next_pass: null
-    - name: iree-util-fold-globals
-      description: Folds duplicate globals and propagates constants.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-util-fuse-globals
-      description: Fuses correlated globals together.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-util-hoist-into-globals
-      description: Greedily hoists eligible constant expressions into globals.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-util-simplify-global-accesses
-      description: Hoists loads and sinks stores to variables to decrease data dependency
-        regions.
-      type: mlir::CallableOpInterface
-      next_pass: null
-    - name: iree-util-import-resources
-      description: Imports IR with arbitrary large-data into resources that IREE can
-        manage efficiently.
-      type: ModuleOp
-      next_pass: null
-    - name: iree-util-annotate-op-ordinals
-      description: Annotates ops with globally unique IDs for debugging.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-util-test-conversion
-      description: Tests util dialect conversion patterns.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-util-test-float-range-analysis
-      description: Tests floating point range analysis.
-      type: ModuleOp
-      next_pass: null
+      - name: iree-util-apply-patterns
+        description: Applies some risky/IREE-specific canonicalization patterns.
+        type: MODULE
+        next_pass: null
+      - name: iree-util-combine-initializers
+        description: Combines global initializers into one.
+        type: MODULE
+        next_pass: null
+      - name: iree-util-drop-compiler-hints
+        description: Deletes operations that have no runtime equivalent and are only
+          used in the compiler.
+        type: MODULE
+        next_pass: null
+      - name: iree-util-dump-module
+        description: Dumps the module IR to the given file path in either textual (.mlir)
+          or binary (.mlirbc) format.
+        type: MODULE
+        next_pass: null
+      - name: iree-util-fixed-point-iterator
+        description: Iterates a sub-pipeline to a fixed point.
+        type: MODULE
+        next_pass: null
+      - name: iree-util-ipo
+        description: Performs basic inter-procedural optimization.
+        type: MODULE
+        next_pass: null
+      - name: iree-util-optimize-int-arithmetic
+        description: Optimizes integer arithmetic using a variety of dataflow analysis
+          and patterns.
+        type: MODULE
+        next_pass: null
+      - name: iree-util-propagate-subranges
+        description: Propagates resource subranges across the program.
+        type: MODULE
+        next_pass: null
+      - name: iree-util-strip-and-splat-constants
+        description: Strips constant util.global ops and replaces them with splats.
+        type: MODULE
+        next_pass: null
+      - name: iree-util-strip-debug-ops
+        description: Strips debug ops, like assertions.
+        type: MODULE
+        next_pass: null
+      - name: iree-util-fold-globals
+        description: Folds duplicate globals and propagates constants.
+        type: MODULE
+        next_pass: null
+      - name: iree-util-fuse-globals
+        description: Fuses correlated globals together.
+        type: MODULE
+        next_pass: null
+      - name: iree-util-hoist-into-globals
+        description: Greedily hoists eligible constant expressions into globals.
+        type: MODULE
+        next_pass: null
+      - name: iree-util-simplify-global-accesses
+        description: Hoists loads and sinks stores to variables to decrease data dependency
+          regions.
+        type: FUNC
+        next_pass: null
+      - name: iree-util-import-resources
+        description: Imports IR with arbitrary large-data into resources that IREE can
+          manage efficiently.
+        type: MODULE
+        next_pass: null
+      - name: iree-util-annotate-op-ordinals
+        description: Annotates ops with globally unique IDs for debugging.
+        type: MODULE
+        next_pass: null
+      - name: iree-util-test-conversion
+        description: Tests util dialect conversion patterns.
+        type: MODULE
+        next_pass: null
+      - name: iree-util-test-float-range-analysis
+        description: Tests floating point range analysis.
+        type: MODULE
+        next_pass: null
   vmvx:
     description: vmvx dialect
     passes:
-    - name: iree-vmvx-conversion
-      description: Converts from various dialects to the VMVX dialect.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-vmvx-materialize-constants
-      description: Materializes executable constant global values.
-      type: mlir::ModuleOp
-      next_pass: null
-    - name: iree-vmvx-resolve-buffer-descriptors
-      description: Resolves any existing vmvx.get_buffer_descriptor ops.
-      type: ModuleOp
-      next_pass: null
+      - name: iree-vmvx-materialize-constants
+        description: Materializes executable constant global values.
+        type: MODULE
+        next_pass: null
+      - name: iree-vmvx-resolve-buffer-descriptors
+        description: Resolves any existing vmvx.get_buffer_descriptor ops.
+        type: MODULE
+        next_pass: null
+  
   TMTensor:
     description: TMTensor dialect
     passes:
     - name: tm-tensor-to-loops
       description: Convert TMTensor ops to loops and Linalg ops.
-      type: func::FuncOp
+      type: FUNC
       next_pass: null
     - name: tm-tensor-bufferize
       description: Bufferize the TMTensor dialect.
-      type: func::FuncOp
+      type: FUNC
       next_pass: null
+  
   torch:
     description: torch dialect
     passes:
-    - name: convert-torch-to-arith
-      description: Convert recognized Torch ops to Std ops.
-      type: func::FuncOp
-      next_pass: null
-    - name: convert-torch-to-scf
-      description: Convert recognized Torch ops to SCF ops.
-      type: func::FuncOp
-      next_pass: null
-    - name: convert-torch-to-linalg
-      description: Convert ATen ops to linalg ops.
-      type: func::FuncOp
-      next_pass: null
-    - name: convert-torch-to-tensor
-      description: Converts any `Torch` operators that were expressible as `Tensor`
-        dialect operations.
-      type: func::FuncOp
-      next_pass: null
-    - name: convert-torch-to-tosa
-      description: Convert Torch ops to TOSA ops.
-      type: func::FuncOp
-      next_pass: null
-    - name: convert-torch-to-tmtensor
-      description: Convert ATen ops to tmtensor/linalg ops.
-      type: func::FuncOp
-      next_pass: null
-    - name: convert-torch-conversion-to-mlprogram
-      description: Convert TorchConversion ops to mlprogram ops.
-      type: ModuleOp
-      next_pass: null
-    - name: convert-torch-to-stablehlo
-      description: Convert Torch ops to Stablehlo ops.
-      type: func::FuncOp
-      next_pass: null
-    - name: convert-torch-onnx-to-torch
-      description: Converts equivalent ONNX custom ops to built-in equivalents.
-      type: func::FuncOp
-      next_pass: null
-    - name: torch-globalize-object-graph
-      description: Converts TorchScript object graphs to a globalized form.
-      type: ModuleOp
-      next_pass: null
-    - name: torch-prepare-for-globalize-object-graph
-      description: Lowering in preparation for globalizing.
-      type: ModuleOp
-      next_pass: null
-    - name: torch-adjust-calling-conventions
-      description: Adjust the calling conventions of functions.
-      type: ModuleOp
-      next_pass: null
-    - name: torch-inline-global-slots
-      description: Inlines torch.global_slot ops.
-      type: ModuleOp
-      next_pass: null
-    - name: torch-reduce-op-variants
-      description: Reduces variants of ops to a smaller set of ops.
-      type: func::FuncOp
-      next_pass: null
-    - name: torch-maximize-value-semantics
-      description: Use value-semantic tensors where possible.
-      type: func::FuncOp
-      next_pass: null
-    - name: torch-refine-public-return
-      description: Refine public return.
-      type: ModuleOp
-      next_pass: null
-    - name: torch-decompose-complex-ops
-      description: Decompose complicated torch operations.
-      type: func::FuncOp
-      next_pass: null
-    - name: torch-scalarize-shapes
-      description: Takes common shape computation operations and scalarizes them.
-      type: func::FuncOp
-      next_pass: null
-    - name: torch-recompose-complex-ops
-      description: Recompose torch operations that have been decomposed by TorchScript.
-      type: func::FuncOp
-      next_pass: null
-    - name: torch-fuse-quantized-ops
-      description: 'QDQ: Fuse recognized QDQ op sequences.'
-      type: func::FuncOp
-      next_pass: null
-    - name: torch-match-quantized-custom-ops
-      description: Match quantized operations that occur in different namespace.
-      type: func::FuncOp
-      next_pass: null
-    - name: torch-reify-shape-calculations
-      description: Reify shape calculations.
-      type: ModuleOp
-      next_pass: null
-    - name: torch-simplify-shape-calculations
-      description: Simplify reified shape calculations.
-      type: func::FuncOp
-      next_pass: null
-    - name: torch-reify-dtype-calculations
-      description: Reify dtype calculations.
-      type: ModuleOp
-      next_pass: null
-    - name: torch-simplify-dtype-calculations
-      description: Simplify reified dtype calculations.
-      type: func::FuncOp
-      next_pass: null
-    - name: torch-drop-abstract-interp-calculations
-      description: Drop reified abstract interpretation calculations.
-      type: func::FuncOp
-      next_pass: null
-    - name: torch-erase-module-initializer
-      description: Erase the `torch.global_slot.module_initializer` op.
-      type: ModuleOp
-      next_pass: null
-    - name: torch-lower-to-backend-contract
-      description: Perform simplifications until the backend contract is satisfied.
-      type: ModuleOp
-      next_pass: null
-    - name: torch-verify-backend-contract-no-decompositions
-      description: Check that program satisfies backend contract.
-      type: ModuleOp
-      next_pass: null
-    - name: torch-restructure-non-constant-axes
-      description: Ensure that every Reduction.cpp op has a constant reduction axis.
-      type: func::FuncOp
-      next_pass: null
-  tosa:
-    description: tosa dialect
-    passes:
-    - name: torch-verify-tosa-backend-contract
-      description: Verifies conformity to the linalg-on-tensors backend contract.
-      type: ModuleOp
-      next_pass: null
-  stablehlo:
-    description: stablehlo dialect
-    passes:
-    - name: torch-verify-stablehlo-backend-contract
-      description: Verifies conformity to the stablehlo backend contract.
-      type: ModuleOp
-      next_pass: null
+      - name: convert-torch-to-arith
+        description: Convert recognized Torch ops to Std ops.
+        type: FUNC
+        next_pass: null
+      - name: convert-torch-to-scf
+        description: Convert recognized Torch ops to SCF ops.
+        type: FUNC
+        next_pass: null
+      - name: convert-torch-to-linalg
+        description: Convert ATen ops to linalg ops.
+        type: FUNC
+        next_pass: null
+      - name: convert-torch-to-tensor
+        description: Converts any `Torch` operators that were expressible as `Tensor`
+          dialect operations.
+        type: FUNC
+        next_pass: null
+      - name: convert-torch-to-tosa
+        description: Convert Torch ops to TOSA ops.
+        type: FUNC
+        next_pass: null
+      - name: convert-torch-to-tmtensor
+        description: Convert ATen ops to tmtensor/linalg ops.
+        type: FUNC
+        next_pass: null
+      - name: convert-torch-conversion-to-mlprogram
+        description: Convert TorchConversion ops to mlprogram ops.
+        type: MODULE
+        next_pass: null
+      - name: convert-torch-to-stablehlo
+        description: Convert Torch ops to Stablehlo ops.
+        type: FUNC
+        next_pass: null
+      - name: convert-torch-onnx-to-torch
+        description: Converts equivalent ONNX custom ops to built-in equivalents.
+        type: FUNC
+        next_pass: null
+      - name: torch-globalize-object-graph
+        description: Converts TorchScript object graphs to a globalized form.
+        type: MODULE
+        next_pass: null
+      - name: torch-prepare-for-globalize-object-graph
+        description: Lowering in preparation for globalizing.
+        type: MODULE
+        next_pass: null
+      - name: torch-adjust-calling-conventions
+        description: Adjust the calling conventions of functions.
+        type: MODULE
+        next_pass: null
+      - name: torch-inline-global-slots
+        description: Inlines torch.global_slot ops.
+        type: MODULE
+        next_pass: null
+      - name: torch-reduce-op-variants
+        description: Reduces variants of ops to a smaller set of ops.
+        type: FUNC
+        next_pass: null
+      - name: torch-maximize-value-semantics
+        description: Use value-semantic tensors where possible.
+        type: FUNC
+        next_pass: null
+      - name: torch-refine-public-return
+        description: Refine public return.
+        type: MODULE
+        next_pass: null
+      - name: torch-decompose-complex-ops
+        description: Decompose complicated torch operations.
+        type: FUNC
+        next_pass: null
+      - name: torch-scalarize-shapes
+        description: Takes common shape computation operations and scalarizes them.
+        type: FUNC
+        next_pass: null
+      - name: torch-recompose-complex-ops
+        description: Recompose torch operations that have been decomposed by TorchScript.
+        type: FUNC
+        next_pass: null
+      - name: torch-fuse-quantized-ops
+        description: 'QDQ: Fuse recognized QDQ op sequences.'
+        type: FUNC
+        next_pass: null
+      - name: torch-match-quantized-custom-ops
+        description: Match quantized operations that occur in different namespace.
+        type: FUNC
+        next_pass: null
+      - name: torch-reify-shape-calculations
+        description: Reify shape calculations.
+        type: MODULE
+        next_pass: null
+      - name: torch-simplify-shape-calculations
+        description: Simplify reified shape calculations.
+        type: FUNC
+        next_pass: null
+      - name: torch-reify-dtype-calculations
+        description: Reify dtype calculations.
+        type: MODULE
+        next_pass: null
+      - name: torch-simplify-dtype-calculations
+        description: Simplify reified dtype calculations.
+        type: FUNC
+        next_pass: null
+      - name: torch-drop-abstract-interp-calculations
+        description: Drop reified abstract interpretation calculations.
+        type: FUNC
+        next_pass: null
+      - name: torch-erase-module-initializer
+        description: Erase the `torch.global_slot.module_initializer` op.
+        type: MODULE
+        next_pass: null
+      - name: torch-lower-to-backend-contract
+        description: Perform simplifications until the backend contract is satisfied.
+        type: MODULE
+        next_pass: null
+      - name: torch-verify-backend-contract-no-decompositions
+        description: Check that program satisfies backend contract.
+        type: MODULE
+        next_pass: null
+      - name: torch-restructure-non-constant-axes
+        description: Ensure that every Reduction.cpp op has a constant reduction axis.
+        type: FUNC
+        next_pass: null
+      - name: torch-verify-linalg-on-tensors-backend-contract
+        description: Verifies conformity to the linalg-on-tensors backend contract.
+        type: MODULE
+        next_pass: null
+      - name: torch-convert-custom-quant-op
+        description: Convert torch custom quant op to linalg.
+        type: FUNC
+        next_pass: null
+

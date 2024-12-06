@@ -44,6 +44,7 @@ dialects:
       - name: "convert-math-to-llvm"
         description: "Convert Math dialect to LLVM dialect"
         next_pass: null
+      - name: "convert-math-to-libm"
 
   tosa:
     description: "Tensor Operator Set Architecture dialect"
@@ -64,6 +65,8 @@ dialects:
         type: FUNC
         description: "Lower TOSA to the Tensor dialect"
         next_pass: null
+      - name: tosa-to-linalg-pipeline
+      - name: tosa-to-mlprogram
 
   linalg:
     description: "Linear algebra operations dialect"
@@ -122,6 +125,7 @@ dialects:
       - name: "one-shot-bufferize{unknown-type-conversion=fully-dynamic-layout-map}"
         description: "Bufferize tensor.cast op"
         next_pass: null
+      - name: convert-tensor-to-linalg
 
 
   bufferization:
@@ -138,7 +142,23 @@ dialects:
         type: FUNC
         description: "Handle buffer deallocation for memory optimization"
         next_pass: null
-        
+
+  shape: 
+    passes:
+      - name: "convert-shape-constraints"
+      - name: "convert-shape-to-std"
+
+  complex:
+    description: ""
+    passes:
+      - name: "convert-complex-to-libm"
+      - name: "convert-complex-to-llvm"
+      - name: convert-complex-to-standard
+
+  index:
+    description: ""
+    passes:
+      - name: "convert-index-to-llvm"
 
 pipelines:
   tosa-to-llvm:

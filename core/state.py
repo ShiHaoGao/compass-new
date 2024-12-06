@@ -36,9 +36,9 @@ class MLIRCodeState:
         
     def _gen_dialects_and_ops(self):
         # 非 circt
-        # self.dialects, self.op_statistics = self.mlir_exec_engine.parse_mlir_content(self.initial_content, self.pass_pipeline)
+        self.dialects, self.op_statistics = self.mlir_exec_engine.parse_mlir_content(self.initial_content, self.pass_pipeline)
         # circt：
-        self.dialects, self.op_statistics = self.mlir_exec_engine.parse_mlir_content(self.content)
+        # self.dialects, self.op_statistics = self.mlir_exec_engine.parse_mlir_content(self.content)
 
     def _gen_available_dialects_and_passes(self):
         self.available_dialects = self.dialects.keys()

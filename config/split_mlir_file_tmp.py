@@ -112,8 +112,8 @@ def main() -> None:
     主函数，处理MLIR文件的完整流程。
     """
     # 配置路径
-    target_directory = "/home/gaoshihao/learn/python/compass/tests/circt_tests/Conversion/FSMToSV"
-    mlir_opt_path = "/home/gaoshihao/learn/python/compass/tools/circt-opt"
+    target_directory = "tests/MLIR_core_tests"
+    mlir_opt_path = "/home/gaoshihao/learn/python/compass/tools/mlir-opt"
     output_dir = "output_modules"
 
     # 清理输出目录
