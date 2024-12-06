@@ -74,6 +74,10 @@ dialects:
         description: "Convert combinational ops and constants to SMT ops"
         type: MODULE
         next_pass: null
+      - name: "lower-comb"
+        description: "Lowers the some of the comb ops."
+        type: MODULE
+        next_pass: null
 
   dc:
     description: "DC dialect for delay calculations"

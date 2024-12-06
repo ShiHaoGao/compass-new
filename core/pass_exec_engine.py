@@ -1,6 +1,7 @@
 from typing import Dict, Set, List, Tuple, Optional, Counter, Any
 from collections import Counter, defaultdict
 import subprocess
+import re
 import json
 from .Registry import Registry
 from .Pass import PassType, Pass, PassPipeline
@@ -41,47 +42,71 @@ class MLIRPassExecutionEngine:
                 f"buddy-opt at {self.mlir_opt_path} is not executable"
             )
         
-    def parse_mlir_content(self, mlir_content: str, pass_pipeline: PassPipeline) -> Tuple[Dict[str, Set[str]], Dict[str, Counter]]:
+    # def parse_mlir_content(self, mlir_content: str, pass_pipeline: PassPipeline) -> Tuple[Dict[str, Set[str]], Dict[str, Counter]]:
+    #     """
+    #     解析MLIR内容中的dialect、op集合和op数量
+    #     返回 (Dict[dialect_name, Set[op_names]], Dict[dialect_name, Counter[op_name, count]])
+    #     """
+        
+    #     # 输入验证
+    #     if not mlir_content or not mlir_content.strip():
+    #         raise ValueError("Empty MLIR content")
+        
+    #     # circt: print-op-count{emission-format=json}
+    #     # MLIR core/ torch-mlir: print-op-stats{json}
+    #     print_op_stats_pipeline = pass_pipeline.append_pass(r'''print-op-count{emission-format=json}''')
+        
+    #     cmd = self._build_command(print_op_stats_pipeline)
+
+        
+    #     process = subprocess.Popen(
+    #         cmd,
+    #         stdin=subprocess.PIPE,
+    #         stdout=subprocess.PIPE,
+    #         stderr=subprocess.PIPE,
+    #         text=True
+    #     )
+        
+    #     output, error = process.communicate(input=mlir_content)
+       
+    #     return_code = process.returncode
+    #     if return_code != 0:
+    #         logger.error(f"Command failed with error: {error}")
+
+    #     try:
+    #         result = json.loads(error)
+    #         dialect_ops: Dict[str, Set[str]] = defaultdict(set)
+    #         op_counts: Dict[str, Counter] = defaultdict(Counter)
+    #         for op, count in result.items():
+    #             dialect = op.split('.')[0]
+    #             dialect_ops[dialect].add(op)
+    #             op_counts[op] = count
+    #     except json.JSONDecodeError as e:
+    #         logger.error(error)
+    #         raise ValueError(f"Invalid JSON format: {e}")
+
+    #     if 'builtin' in dialect_ops:
+    #         del dialect_ops['builtin']
+        
+    #     return dialect_ops, op_counts
+    
+    def parse_mlir_content(self, mlir_content: str) -> Tuple[Dict[str, Set[str]], Dict[str, Counter]]:
         """
         解析MLIR内容中的dialect、op集合和op数量
         返回 (Dict[dialect_name, Set[op_names]], Dict[dialect_name, Counter[op_name, count]])
         """
+        dialect_ops: Dict[str, Set[str]] = defaultdict(set)
+        op_counts: Dict[str, Counter] = defaultdict(Counter)
         
-        # 输入验证
-        if not mlir_content or not mlir_content.strip():
-            raise ValueError("Empty MLIR content")
+        pattern = r'([a-zA-Z_]+)\.([a-zA-Z_\.]+)'
+        matches = re.finditer(pattern, mlir_content)
         
-        print_op_stats_pipeline = pass_pipeline.append_pass('''print-op-stats{json}''')
+        for match in matches:
+            dialect = match.group(1)
+            op = match.group(2)
+            dialect_ops[dialect].add(op)
+            op_counts[dialect][op] += 1
         
-        cmd = self._build_command(print_op_stats_pipeline)
-
-        
-        process = subprocess.Popen(
-            cmd,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
-        
-        output, error = process.communicate(input=mlir_content)
-       
-        return_code = process.returncode
-        if return_code != 0:
-            logger.error(f"Command failed with error: {error}")
-
-        try:
-            result = json.loads(error)
-            dialect_ops: Dict[str, Set[str]] = defaultdict(set)
-            op_counts: Dict[str, Counter] = defaultdict(Counter)
-            for op, count in result.items():
-                dialect = op.split('.')[0]
-                dialect_ops[dialect].add(op)
-                op_counts[op] = count
-        except json.JSONDecodeError as e:
-            logger.error(error)
-            raise ValueError(f"Invalid JSON format: {e}")
-
         if 'builtin' in dialect_ops:
             del dialect_ops['builtin']
         
@@ -108,7 +133,8 @@ class MLIRPassExecutionEngine:
     def clean_code(self, mlir_content: str) -> Optional[str]:
         logger.debug("Clean code!")
         cmd = [
-            self.mlir_opt_path
+            self.mlir_opt_path,
+            "-split-input-file"
         ]
         
         process = subprocess.Popen(

@@ -57,7 +57,10 @@ class LoweringConfig:
     # pass相关配置
     third_party_config_path: Path = None
     core_config_path: Path = Path("config/core_config.yaml")
-    target_dialect: Optional[str] = "llvm" 
+    
+    # Target配置
+    target_type: str = "custom"
+    target_dialects: Optional[List[str]] = field(default_factory=list)
     
     # mlir-opt 路径设置
     mlir_opt_path: Path = Path("tools/mlir-opt")
@@ -92,9 +95,16 @@ class LoweringConfig:
             self.third_party_opt_path = Path(self.third_party_opt_path)
             self.third_party_config_path = Path(self.third_party_config_path)
         
-        # 如果target_dialect是core，则说明target_dialect是Core dialect
-        if self.target_dialect == "core" or self.target_dialect is None:
-            self.target_dialect = None
+        # 配置target_dialects
+        if self.target_type == "core":
+            self.target_dialects = []
+        elif self.target_type == "llvm":
+            self.target_dialects = ["llvm"]
+        elif self.target_type == "custom":
+            if len(self.target_dialects) == 0:
+                logger.error("Target was not setted!")
+                
+            
         self.output_dir = Path(self.output_dir)
         self.mlir_opt_path = Path(self.mlir_opt_path)
         self.mlir_translate_path = Path(self.mlir_translate_path)
