@@ -1,0 +1,797 @@
+passes:
+- description: Converts StableHLO input to IREE input dialects.
+  dialect: Unspecified
+  name: iree-stablehlo-to-iree-input
+  type: ModuleOp
+- description: Converts from StableHLO ops to LinalgExt ops and distribute to Flow
+    ops.
+  dialect: Unspecified
+  name: iree-stablehlo-to-linalg-ext
+  type: mlir::FunctionOpInterface
+- description: Converts from StableHLO ops to Linalg ops on.
+  dialect: Unspecified
+  name: iree-stablehlo-to-linalg
+  type: ModuleOp
+- description: Legalizes from StableHLO control flow to SCF control flow.
+  dialect: Unspecified
+  name: iree-stablehlo-legalize-control-flow
+  type: mlir::FunctionOpInterface
+- description: Legalizes from CHLO ops flow to StableHLO and Shape ops.
+  dialect: Unspecified
+  name: iree-stablehlo-legalize-chlo
+  type: mlir::FunctionOpInterface
+- description: Legalizes specialized custom calls to decomposed implementations.
+  dialect: Unspecified
+  name: iree-stablehlo-legalize-custom-calls
+  type: mlir::FunctionOpInterface
+- description: Legalizes StableHLO shape operations to core-mlir operations.
+  dialect: Unspecified
+  name: iree-stablehlo-legalize-shape-computations
+  type: mlir::FunctionOpInterface
+- description: Verifies that only supported IR constructs are passed to the compiler.
+  dialect: Unspecified
+  name: iree-stablehlo-verify-compiler-input-legality
+  type: ModuleOp
+- description: Check and report an error when VHLO and StableHLO are used in the same
+    module.
+  dialect: Unspecified
+  name: iree-check-vhlostablehlo-mix-usage
+  type: ModuleOp
+passes:
+- description: Applies IREE-specific stablehlo to stablehlo preprocessing transformations.
+  dialect: Unspecified
+  name: iree-stablehlo-to-stablehlo-preprocessing
+  type: ModuleOp
+- description: Canonicalizes StableHLO operations.
+  dialect: Unspecified
+  name: iree-stablehlo-canonicalize
+  type: mlir::FunctionOpInterface
+- description: Lowers general dot to a non-batched dot when possible.
+  dialect: Unspecified
+  name: iree-stablehlo-preprocessing-dot-general-to-dot
+  type: mlir::FunctionOpInterface
+- description: Legalizes einsum ops to general dot ops.
+  dialect: Unspecified
+  name: iree-stablehlo-preprocessing-einsum-to-dot-general
+  type: mlir::FunctionOpInterface
+- description: Flattens tuples in the CFG form of StableHLO.
+  dialect: Unspecified
+  name: iree-stablehlo-preprocessing-flatten-cfg-tuples
+  type: ModuleOp
+- description: Flattens tuples in the SCF form of StableHLO.
+  dialect: Unspecified
+  name: iree-stablehlo-preprocessing-flatten-scf-tuples
+  type: ModuleOp
+- description: Legalizes gathers to a torch index select.
+  dialect: Unspecified
+  name: iree-stablehlo-preprocessing-gather-to-torch-index-select
+  type: mlir::FunctionOpInterface
+- description: Lowers complex operations into non-complex operations.
+  dialect: Unspecified
+  name: iree-stablehlo-preprocessing-lower-complex
+  type: mlir::FunctionOpInterface
+- description: Materializes 'broadcast_dimensions' attributes.
+  dialect: Unspecified
+  name: iree-stablehlo-preprocessing-unfuse-batch-norm
+  type: mlir::FunctionOpInterface
+passes:
+- description: Combines `iree_gpu.barrier_region` ops.
+  dialect: gpu
+  name: iree-gpu-combine-barrier-regions
+  type: ModuleOp
+- description: Expands the inner dimensions of iree_gpu.multi_mma ops to match the
+    thread layout.
+  dialect: gpu
+  name: iree-gpu-concretize-mma-shapes
+  type: mlir::FunctionOpInterface
+- description: Distributes iree_gpu.multi_mma ops to lanes.
+  dialect: gpu
+  name: iree-gpu-distribute-mma-to-lanes
+  type: mlir::FunctionOpInterface
+- description: Post bufferization lowerings of iree_gpu ops before late lowerings.
+  dialect: gpu
+  name: iree-gpu-lower-ops
+  type: mlir::FunctionOpInterface
+- description: Unrolls iree_gpu.multi_mma ops to their inner vector size.
+  dialect: gpu
+  name: iree-gpu-unroll-to-intrinsics
+  type: mlir::FunctionOpInterface
+- description: Vectorizes then lowers a few iree_gpu ops before vectorization.
+  dialect: gpu
+  name: iree-gpu-vectorize-ops
+  type: mlir::FunctionOpInterface
+passes:
+- description: Vectorizes then lowers a few iree_vector_ext ops before vectorization.
+  dialect: iree_vector_ext
+  name: iree-vector-ext-vectorize-ops
+  type: ModuleOp
+- description: Folds unit dims for iree_vector_ext ops.
+  dialect: iree_vector_ext
+  name: iree-vector-ext-fold-unit-extent-dims
+  type: ModuleOp
+passes:
+- description: Annotates executable dispatches based on their contents.
+  dialect: Flow
+  name: iree-flow-annotate-dispatches
+  type: mlir::ModuleOp
+- description: Flow specific canonicalization pass.
+  dialect: Flow
+  name: iree-flow-canonicalize
+  type: ModuleOp
+- description: Captures dynamic shape dimensions required by dispatch operands/results
+    and control flow operations.
+  dialect: Flow
+  name: iree-flow-capture-dynamic-dims
+  type: ModuleOp
+- description: Cleans up any remaining tensor shape metadata after lowering.
+  dialect: Flow
+  name: iree-flow-cleanup-tensor-shapes
+  type: ModuleOp
+- description: Convert Mesh dialect operations to flow.
+  dialect: Flow
+  name: iree-convert-mesh-to-flow
+  type: mlir::ModuleOp
+- description: Convert operations to flow. Currently just a test pass.
+  dialect: Flow
+  name: iree-flow-convert-to-flow
+  type: ModuleOp
+- description: Deduplicates executables that are identical.
+  dialect: Flow
+  name: iree-flow-deduplicate-executables
+  type: mlir::ModuleOp
+- description: Dump visualization of dispatches within the program.
+  dialect: Flow
+  name: iree-flow-dump-dispatch-graph-pass
+  type: ModuleOp
+- description: Exports all functions and dispatch executables as `() -> ()` benchmark
+    funcs.
+  dialect: Flow
+  name: iree-flow-export-benchmark-funcs-pass
+  type: mlir::ModuleOp
+- description: Initialize all empty tensors after dispatch formation to zero or uninitialized
+    allocations.
+  dialect: Flow
+  name: iree-flow-initialize-empty-tensors
+  type: ModuleOp
+- description: Injects tracing markers for dispatch operation tensor inputs and outputs.
+  dialect: Flow
+  name: iree-flow-inject-dispatch-tracing
+  type: mlir::FunctionOpInterface
+- description: Injects tensor tracing on ops annotated with `iree.tensor.trace`.
+  dialect: Flow
+  name: iree-flow-inject-tensor-tracing
+  type: mlir::FunctionOpInterface
+- description: Crops and/or traces the program at the specified symbol.
+  dialect: Flow
+  name: iree-flow-insert-debug-target-at-symbol
+  type: mlir::ModuleOp
+- description: Crops and/or traces the program at the specified ordinal.
+  dialect: Flow
+  name: iree-flow-insert-debug-target-at-ordinal
+  type: mlir::ModuleOp
+- description: Outlines tensor constants throughout the program into globals initialized
+    with stream ops.
+  dialect: Flow
+  name: iree-flow-outline-constants
+  type: mlir::ModuleOp
+- description: Outlines external dispatches into executables.
+  dialect: Flow
+  name: iree-flow-outline-dispatch-externs
+  type: mlir::ModuleOp
+- description: Outlines dispatch regions into executables.
+  dialect: Flow
+  name: iree-flow-outline-dispatch-regions
+  type: mlir::ModuleOp
+- description: Converts non-nested SCF constructs to CFG (not traversing into opaque
+    operations).
+  dialect: Flow
+  name: iree-top-level-scf-to-cfg
+  type: mlir::FunctionOpInterface
+- description: Checks the legality of the IR at the start of IREE flow transformation
+    pipeline.
+  dialect: Flow
+  name: iree-verify-input-legality
+  type: ModuleOp
+passes:
+- description: Converts from stream and other intermediate dialects into the hal dialect.
+  dialect: hal
+  name: iree-hal-conversion
+  type: mlir::ModuleOp
+- description: Assigns the HAL devices the module will target to the given list of
+    targets.
+  dialect: hal
+  name: iree-hal-assign-legacy-target-devices
+  type: mlir::ModuleOp
+- description: Assigns the HAL devices the module will target to the given list of
+    target specifications.
+  dialect: hal
+  name: iree-hal-assign-target-devices
+  type: mlir::ModuleOp
+- description: Materializes global device handles based on a `hal.device.targets`
+    spec.
+  dialect: hal
+  name: iree-hal-materialize-target-devices
+  type: mlir::ModuleOp
+- description: Resolves `#hal.device.promise` attributes to their devices.
+  dialect: hal
+  name: iree-hal-resolve-device-promises
+  type: mlir::ModuleOp
+- description: Resolves `#hal.device.alias` attributes to their expanded configurations.
+  dialect: hal
+  name: iree-hal-resolve-device-aliases
+  type: mlir::ModuleOp
+- description: Verifies that all devices can be targeted with the available compiler
+    plugins.
+  dialect: hal
+  name: iree-hal-verify-devices
+  type: mlir::ModuleOp
+- description: Applies fixups to the program for when using legacy HAL devices.
+  dialect: hal
+  name: iree-hal-fixup-legacy-sync
+  type: mlir::ModuleOp
+- description: Inlines `hal.device.memoize` regions into their parent region.
+  dialect: hal
+  name: iree-hal-inline-memoize-regions
+  type: ModuleOp
+- description: Outlines `hal.device.memoize` regions and creates global resources.
+  dialect: hal
+  name: iree-hal-outline-memoize-regions
+  type: mlir::ModuleOp
+- description: Finds hal.device.query ops and creates variables initialized on startup.
+  dialect: hal
+  name: iree-hal-memoize-device-queries
+  type: mlir::ModuleOp
+- description: Defines hal.executable variants for stream.executable ops.
+  dialect: hal
+  name: iree-hal-materialize-interfaces
+  type: mlir::ModuleOp
+- description: Substitutes hal.executable ops with files on disk.
+  dialect: hal
+  name: iree-hal-substitute-executables
+  type: mlir::ModuleOp
+- description: Preprocess each executable with an MLIR pass pipeline.
+  dialect: hal
+  name: iree-hal-preprocess-executables-with-pipeline
+  type: IREE::HAL::ExecutableOp
+- description: Preprocess each executable with an external command line tool.
+  dialect: hal
+  name: iree-hal-preprocess-executables-with-tool
+  type: IREE::HAL::ExecutableOp
+- description: Configures hal.executable ops via a nested translation pipeline.
+  dialect: hal
+  name: iree-hal-configure-executables
+  type: IREE::HAL::ExecutableOp
+- description: Configures hal.executable.variant ops for the specified target backend.
+  dialect: hal
+  name: iree-hal-configure-target-executable-variants
+  type: IREE::HAL::ExecutableVariantOp
+- description: Translates hal.executable ops via a nested translation pipeline.
+  dialect: hal
+  name: iree-hal-translate-all-executables
+  type: IREE::HAL::ExecutableOp
+- description: Translates hal.executable.variant ops for the specified target backend.
+  dialect: hal
+  name: iree-hal-translate-target-executable-variants
+  type: IREE::HAL::ExecutableVariantOp
+- description: Hoists local executable object annotations to the parent `hal.executable.variant`.
+  dialect: hal
+  name: iree-hal-hoist-executable-objects
+  type: IREE::HAL::ExecutableVariantOp
+- description: Prunes executable variants and exports that are not referenced.
+  dialect: hal
+  name: iree-hal-prune-executables
+  type: mlir::ModuleOp
+- description: Links hal.executable ops into one or more hal.executable ops.
+  dialect: hal
+  name: iree-hal-link-all-executables
+  type: mlir::ModuleOp
+- description: Links executables for the specified target backend.
+  dialect: hal
+  name: iree-hal-link-target-executables
+  type: mlir::ModuleOp
+- description: Resolves symbolic hal.executable.export references to ordinals.
+  dialect: hal
+  name: iree-hal-resolve-export-ordinals
+  type: mlir::ModuleOp
+- description: Converts hal.executable.variants to one or more hal.executable.binary
+    ops.
+  dialect: hal
+  name: iree-hal-serialize-all-executables
+  type: IREE::HAL::ExecutableOp
+- description: Serializes executables for the specified target backend.
+  dialect: hal
+  name: iree-hal-serialize-target-executables
+  type: IREE::HAL::ExecutableOp
+passes:
+- description: Adds dispatch instrumentation for both host and device prior to materializing
+    interfaces so that the higher-level stream dialect can be used to easily mutate
+    the dispatch sites, executable exports, and resources used for instrumentation
+    storage.
+  dialect: IREE::HAL
+  name: iree-hal-materialize-dispatch-instrumentation
+  type: mlir::ModuleOp
+- description: Initializes each global `!hal.device` based on the specification attribute
+    by building initializers that enumerate and select the appropriate device.
+  dialect: IREE::HAL
+  name: iree-hal-initialize-devices
+  type: mlir::ModuleOp
+- description: Scans the program for resource lookups such as `hal.executable.lookup`
+    and materializes globals initialized on startup. The original lookup ops are replaced
+    with global loads of the cached resources.
+  dialect: IREE::HAL
+  name: iree-hal-materialize-resource-caches
+  type: mlir::ModuleOp
+- description: Identifies sequences of stateful command buffer operations such as
+    `hal.command_buffer.push_descriptor_set` that set redundant state that arise from
+    trivial conversion from the stateless stream dialect and removes them to reduce
+    binary size and runtime overhead.
+  dialect: IREE::HAL
+  name: iree-hal-elide-redundant-commands
+  type: ModuleOp
+- description: Captures a source listing of each hal.executable.variant and attaches
+    the source to the variant embedded in the IR. Entry points are assigned locations
+    in the IR relative to the captured source.
+  dialect: IREE::HAL
+  name: iree-hal-capture-executable-sources
+  type: mlir::ModuleOp
+- description: Dumps a source listing of each hal.executable and updates the source
+    locations in the IR to point at the produced files. This allows for easy inspection
+    of each executable prior to translation and gives downstream tools that can display
+    source information (Tracy, perf, etc) something more useful than the entire original
+    source program.
+  dialect: IREE::HAL
+  name: iree-hal-dump-executable-sources
+  type: mlir::ModuleOp
+- description: Dumps one MLIR file per hal.executable containing the executable contents
+    and the host code required to dispatch them with fake buffers and operands. These
+    benchmarks can be run with the `iree-benchmark-module` tool to microbenchmark
+    individual dispatches outside of the whole program context.
+  dialect: IREE::HAL
+  name: iree-hal-dump-executable-benchmarks
+  type: mlir::ModuleOp
+- description: A debugging pass for stripping translated executable contents (LLVM
+    dialect, SPIR-V dialect, etc) to reduce IR size and noise from the device-only
+    code.
+  dialect: IREE::HAL
+  name: iree-hal-strip-executable-contents
+  type: mlir::ModuleOp
+- description: Finds all hal.command_buffer.dispatch ops and repeats them the specified
+    number of times by cloning them and inserting a barrier. This is extremely unreliable
+    and nearly always creates incorrect programs that have wildly incorrect end-to-end
+    execution timings.
+  dialect: IREE::HAL
+  name: iree-hal-repeat-dispatches
+  type: ModuleOp
+passes:
+- description: Convert LinalgExt ops to loops and Linalg ops.
+  dialect: linalg
+  name: iree-linalg-ext-to-loops
+  type: mlir::FunctionOpInterface
+- description: Pads contraction (matmul) ops to next multiple of block size.
+  dialect: linalg
+  name: iree-linalg-pad-contraction-to-block-size
+  type: ModuleOp
+- description: Topk split reduction pass with a map-reduce style of parallelizing
+    a Topk Op.
+  dialect: linalg
+  name: iree-linalg-ext-topk-split-reduction
+  type: mlir::FunctionOpInterface
+- description: Decomposes im2col ops into insert and extract slice ops.
+  dialect: linalg
+  name: iree-linalg-ext-decompose-im2col
+  type: mlir::FunctionOpInterface
+- description: Decomposes winograd transform ops into linalg ops.
+  dialect: linalg
+  name: iree-linalg-ext-decompose-winograd
+  type: mlir::FunctionOpInterface
+- description: Convert linalg convolution ops to im2col gemm based implementation.
+  dialect: linalg
+  name: iree-linalg-ext-convert-conv2d-to-im2col-op
+  type: mlir::FunctionOpInterface
+- description: Convert linalg convolution ops to winograd based implementation.
+  dialect: linalg
+  name: iree-linalg-ext-convert-conv2d-to-winograd
+  type: mlir::FunctionOpInterface
+- description: Decomposes attention op into a sequence of linalg ops.
+  dialect: linalg
+  name: iree-linalg-ext-decompose-attention
+  type: mlir::FunctionOpInterface
+- description: Converts attention op to online_attention op.
+  dialect: linalg
+  name: iree-linalg-ext-convert-attention-to-online-attention
+  type: ModuleOp
+passes:
+- description: Converts from flow and other input dialects into the stream dialect.
+  dialect: stream
+  name: iree-stream-conversion
+  type: mlir::ModuleOp
+- description: Encodes tensors into storage formats based on affinity and target support.
+  dialect: stream
+  name: iree-stream-encode-host-tensors
+  type: ModuleOp
+- description: Encodes tensors into binary formats based on affinity and target support.
+  dialect: stream
+  name: iree-stream-encode-device-tensors
+  type: ModuleOp
+- description: Materialize dispatches to builtin executables where required.
+  dialect: stream
+  name: iree-stream-materialize-builtins
+  type: mlir::ModuleOp
+- description: Materializes copy-on-write (🐄) behavior as explicit ops.
+  dialect: stream
+  name: iree-stream-materialize-copy-on-write
+  type: ModuleOp
+- description: Elides copies when they are not performing meaningful work.
+  dialect: stream
+  name: iree-stream-elide-async-copies
+  type: mlir::ModuleOp
+- description: Emplaces transient tensor allocations to remove copies.
+  dialect: stream
+  name: iree-stream-emplace-allocations
+  type: ModuleOp
+- description: Refines resource usage bits and inserts transfers where appropriate.
+  dialect: stream
+  name: iree-stream-refine-usage
+  type: mlir::ModuleOp
+- description: Identifies and groups asynchronous operations into executable regions
+    within function-like regions.
+  dialect: stream
+  name: iree-stream-schedule-execution
+  type: mlir::CallableOpInterface
+- description: Identifies and groups asynchronous operations within executable regions
+    that can run concurrently and groups them into streams.
+  dialect: stream
+  name: iree-stream-schedule-concurrency
+  type: mlir::CallableOpInterface
+- description: Materializes timepoints and sinks them to consumers throughout the
+    whole program.
+  dialect: stream
+  name: iree-stream-propagate-timepoints
+  type: mlir::ModuleOp
+- description: Elides timepoints that are known to be covered by dependent timepoints.
+  dialect: stream
+  name: iree-stream-elide-timepoints
+  type: mlir::ModuleOp
+- description: Allocates resources and converts to explicit stream commands.
+  dialect: stream
+  name: iree-stream-schedule-allocation
+  type: mlir::ModuleOp
+- description: Packs and allocates backing storage for fused constant resources.
+  dialect: stream
+  name: iree-stream-pack-constants
+  type: mlir::CallableOpInterface
+- description: Lays out packed slices and produces arithmetic required for all offsets.
+  dialect: stream
+  name: iree-stream-layout-slices
+  type: mlir::CallableOpInterface
+- description: Folds redundant and uniformly constant dispatch operands.
+  dialect: stream
+  name: iree-stream-fold-uniform-operands
+  type: mlir::ModuleOp
+- description: Fuses bindings to the same underlying storage to reduce binding count.
+  dialect: stream
+  name: iree-stream-fuse-dispatch-bindings
+  type: mlir::ModuleOp
+- description: Specializes executables by inlining/fusing operands based on dispatch
+    sites.
+  dialect: stream
+  name: iree-stream-specialize-dispatches
+  type: mlir::ModuleOp
+- description: Annotates dispatch arguments with potential values derived from dispatch
+    sites.
+  dialect: stream
+  name: iree-stream-annotate-dispatch-arguments
+  type: mlir::ModuleOp
+- description: Adds util.assume.* op to executables from all dispatch sites.
+  dialect: stream
+  name: iree-stream-annotate-dispatch-assumptions
+  type: mlir::ModuleOp
+- description: Packs stream dispatch operands into i32 push constants.
+  dialect: stream
+  name: iree-stream-pack-dispatch-operands
+  type: mlir::ModuleOp
+- description: Annotates affinities on all ops for debugging.
+  dialect: stream
+  name: iree-stream-annotate-affinities
+  type: mlir::ModuleOp
+passes:
+- description: Dumps stream dialect usage information to a file.
+  dialect: stream
+  name: iree-stream-dump-statistics
+  type: mlir::ModuleOp
+- description: Verifies that input dialects are supported by the streams dialect.
+  dialect: stream
+  name: iree-stream-verify-input
+  type: mlir::ModuleOp
+- description: Verifies that all operations have affinities assigned (directly or
+    indirectly).
+  dialect: stream
+  name: iree-stream-verify-affinities
+  type: mlir::ModuleOp
+- description: Verifies that input dialects are converted to stream.tensor.* ops.
+  dialect: stream
+  name: iree-stream-verify-lowering-to-tensors
+  type: mlir::ModuleOp
+- description: Verifies that all stream.tensor.* ops and types are fully lowered to
+    stream.async.* resource ops.
+  dialect: stream
+  name: iree-stream-verify-lowering-to-async-resources
+  type: mlir::ModuleOp
+- description: Verifies that all stream.tensor.* ops and types are fully lowered to
+    stream.async.* ops and all resources have an assigned lifetime.
+  dialect: stream
+  name: iree-stream-verify-lowering-to-async
+  type: mlir::ModuleOp
+- description: Verifies that stream.async.* access ranges are in bounds where possible.
+  dialect: stream
+  name: iree-stream-verify-async-access-ranges
+  type: mlir::ModuleOp
+- description: Verifies that all stream.async.* ops and types are fully lowered to
+    stream.cmd.* ops.
+  dialect: stream
+  name: iree-stream-verify-lowering-to-cmd
+  type: mlir::ModuleOp
+passes:
+- description: Applies some risky/IREE-specific canonicalization patterns.
+  dialect: iree
+  name: iree-util-apply-patterns
+  type: ModuleOp
+- description: Combines global initializers into one.
+  dialect: iree
+  name: iree-util-combine-initializers
+  type: mlir::ModuleOp
+- description: Deletes operations that have no runtime equivalent and are only used
+    in the compiler.
+  dialect: iree
+  name: iree-util-drop-compiler-hints
+  type: ModuleOp
+- description: Dumps the module IR to the given file path in either textual (.mlir)
+    or binary (.mlirbc) format.
+  dialect: iree
+  name: iree-util-dump-module
+  type: mlir::ModuleOp
+- description: Iterates a sub-pipeline to a fixed point.
+  dialect: iree
+  name: iree-util-fixed-point-iterator
+  type: ModuleOp
+- description: Performs basic inter-procedural optimization.
+  dialect: iree
+  name: iree-util-ipo
+  type: mlir::ModuleOp
+- description: Optimizes integer arithmetic using a variety of dataflow analysis and
+    patterns.
+  dialect: iree
+  name: iree-util-optimize-int-arithmetic
+  type: ModuleOp
+- description: Propagates resource subranges across the program.
+  dialect: iree
+  name: iree-util-propagate-subranges
+  type: mlir::ModuleOp
+- description: Strips constant util.global ops and replaces them with splats.
+  dialect: iree
+  name: iree-util-strip-and-splat-constants
+  type: mlir::ModuleOp
+- description: Strips debug ops, like assertions.
+  dialect: iree
+  name: iree-util-strip-debug-ops
+  type: ModuleOp
+- description: Folds duplicate globals and propagates constants.
+  dialect: iree
+  name: iree-util-fold-globals
+  type: mlir::ModuleOp
+- description: Fuses correlated globals together.
+  dialect: iree
+  name: iree-util-fuse-globals
+  type: mlir::ModuleOp
+- description: Greedily hoists eligible constant expressions into globals.
+  dialect: iree
+  name: iree-util-hoist-into-globals
+  type: mlir::ModuleOp
+- description: Hoists loads and sinks stores to variables to decrease data dependency
+    regions.
+  dialect: iree
+  name: iree-util-simplify-global-accesses
+  type: mlir::CallableOpInterface
+- description: Imports IR with arbitrary large-data into resources that IREE can manage
+    efficiently.
+  dialect: iree
+  name: iree-util-import-resources
+  type: ModuleOp
+- description: Annotates ops with globally unique IDs for debugging.
+  dialect: iree
+  name: iree-util-annotate-op-ordinals
+  type: mlir::ModuleOp
+- description: Tests util dialect conversion patterns.
+  dialect: iree
+  name: iree-util-test-conversion
+  type: mlir::ModuleOp
+- description: Tests floating point range analysis.
+  dialect: iree
+  name: iree-util-test-float-range-analysis
+  type: ModuleOp
+passes:
+- description: Converts from various dialects to the VMVX dialect.
+  dialect: vmvx
+  name: iree-vmvx-conversion
+  type: mlir::ModuleOp
+- description: Materializes executable constant global values.
+  dialect: vmvx
+  name: iree-vmvx-materialize-constants
+  type: mlir::ModuleOp
+- description: Resolves any existing vmvx.get_buffer_descriptor ops.
+  dialect: vmvx
+  name: iree-vmvx-resolve-buffer-descriptors
+  type: ModuleOp
+passes:
+- description: Convert TMTensor ops to loops and Linalg ops.
+  dialect: TMTensor
+  name: tm-tensor-to-loops
+  type: func::FuncOp
+- description: Bufferize the TMTensor dialect.
+  dialect: TMTensor
+  name: tm-tensor-bufferize
+  type: func::FuncOp
+passes:
+- description: Convert recognized Torch ops to Std ops.
+  dialect: torch
+  name: convert-torch-to-arith
+  type: func::FuncOp
+- description: Convert recognized Torch ops to SCF ops.
+  dialect: torch
+  name: convert-torch-to-scf
+  type: func::FuncOp
+- description: Convert ATen ops to linalg ops.
+  dialect: torch
+  name: convert-torch-to-linalg
+  type: func::FuncOp
+- description: Converts any `Torch` operators that were expressible as `Tensor` dialect
+    operations.
+  dialect: torch
+  name: convert-torch-to-tensor
+  type: func::FuncOp
+- description: Convert Torch ops to TOSA ops.
+  dialect: torch
+  name: convert-torch-to-tosa
+  type: func::FuncOp
+- description: Convert ATen ops to tmtensor/linalg ops.
+  dialect: torch
+  name: convert-torch-to-tmtensor
+  type: func::FuncOp
+- description: Convert TorchConversion ops to mlprogram ops.
+  dialect: torch
+  name: convert-torch-conversion-to-mlprogram
+  type: ModuleOp
+- description: Convert Torch ops to Stablehlo ops.
+  dialect: torch
+  name: convert-torch-to-stablehlo
+  type: func::FuncOp
+passes:
+- description: Converts equivalent ONNX custom ops to built-in equivalents.
+  dialect: torch
+  name: convert-torch-onnx-to-torch
+  type: func::FuncOp
+passes:
+- description: Converts TorchScript object graphs to a globalized form.
+  dialect: torch
+  name: torch-globalize-object-graph
+  type: ModuleOp
+- description: Lowering in preparation for globalizing.
+  dialect: torch
+  name: torch-prepare-for-globalize-object-graph
+  type: ModuleOp
+- description: Adjust the calling conventions of functions.
+  dialect: torch
+  name: torch-adjust-calling-conventions
+  type: ModuleOp
+- description: Inlines torch.global_slot ops.
+  dialect: torch
+  name: torch-inline-global-slots
+  type: ModuleOp
+- description: Reduces variants of ops to a smaller set of ops.
+  dialect: torch
+  name: torch-reduce-op-variants
+  type: func::FuncOp
+- description: Use value-semantic tensors where possible.
+  dialect: torch
+  name: torch-maximize-value-semantics
+  type: func::FuncOp
+- description: Refine public return.
+  dialect: torch
+  name: torch-refine-public-return
+  type: ModuleOp
+- description: Decompose complicated torch operations.
+  dialect: torch
+  name: torch-decompose-complex-ops
+  type: func::FuncOp
+- description: Takes common shape computation operations and scalarizes them.
+  dialect: torch
+  name: torch-scalarize-shapes
+  type: func::FuncOp
+- description: Recompose torch operations that have been decomposed by TorchScript.
+  dialect: torch
+  name: torch-recompose-complex-ops
+  type: func::FuncOp
+- description: 'QDQ: Fuse recognized QDQ op sequences.'
+  dialect: torch
+  name: torch-fuse-quantized-ops
+  type: func::FuncOp
+- description: Match quantized operations that occur in different namespace.
+  dialect: torch
+  name: torch-match-quantized-custom-ops
+  type: func::FuncOp
+- description: Reify shape calculations.
+  dialect: torch
+  name: torch-reify-shape-calculations
+  type: ModuleOp
+- description: Simplify reified shape calculations.
+  dialect: torch
+  name: torch-simplify-shape-calculations
+  type: func::FuncOp
+- description: Reify dtype calculations.
+  dialect: torch
+  name: torch-reify-dtype-calculations
+  type: ModuleOp
+- description: Simplify reified dtype calculations.
+  dialect: torch
+  name: torch-simplify-dtype-calculations
+  type: func::FuncOp
+- description: Drop reified abstract interpretation calculations.
+  dialect: torch
+  name: torch-drop-abstract-interp-calculations
+  type: func::FuncOp
+- description: Erase the `torch.global_slot.module_initializer` op.
+  dialect: torch
+  name: torch-erase-module-initializer
+  type: ModuleOp
+- description: Perform simplifications until the backend contract is satisfied.
+  dialect: torch
+  name: torch-lower-to-backend-contract
+  type: ModuleOp
+- description: Check that program satisfies backend contract.
+  dialect: torch
+  name: torch-verify-backend-contract-no-decompositions
+  type: ModuleOp
+- description: Ensure that every Reduction.cpp op has a constant reduction axis.
+  dialect: torch
+  name: torch-restructure-non-constant-axes
+  type: func::FuncOp
+passes: []
+passes:
+- description: Partial type conversion pass analogous in scope to the upstream `func-bufferize`
+    pass.
+  dialect: Unspecified
+  name: torch-func-backend-type-conversion
+  type: ModuleOp
+- description: Partial type conversion pass analogous in scope to the upstream `func-bufferize`
+    pass.
+  dialect: Unspecified
+  name: torch-func-backend-type-conversion-for-stablehlo
+  type: ModuleOp
+- description: Analogous in scope to the upstream `finalizing-bufferize` pass.
+  dialect: Unspecified
+  name: torch-finalizing-backend-type-conversion
+  type: mlir::FunctionOpInterface
+- description: Analogous in scope to the upstream `finalizing-bufferize` pass.
+  dialect: Unspecified
+  name: torch-finalizing-backend-type-conversion-for-stablehlo
+  type: mlir::FunctionOpInterface
+- description: Verifies conformity to the linalg-on-tensors backend contract.
+  dialect: linalg
+  name: torch-verify-linalg-on-tensors-backend-contract
+  type: ModuleOp
+- description: Verifies conformity to the linalg-on-tensors backend contract.
+  dialect: tosa
+  name: torch-verify-tosa-backend-contract
+  type: ModuleOp
+- description: Verifies conformity to the stablehlo backend contract.
+  dialect: stablehlo
+  name: torch-verify-stablehlo-backend-contract
+  type: ModuleOp
+- description: Unpack quantized int4 tensor from int8 container.
+  dialect: Unspecified
+  name: torch-unpack-quant-tensor
+  type: mlir::FunctionOpInterface
+- description: Convert torch custom quant op to linalg.
+  dialect: linalg
+  name: torch-convert-custom-quant-op
+  type: mlir::FunctionOpInterface
