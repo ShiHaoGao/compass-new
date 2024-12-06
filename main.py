@@ -102,15 +102,16 @@ def main():
     setup_logging(log_level=logging.DEBUG)
     
 
-    # # 示例1：测试单个文件
-    # single_file = "/home/gaoshihao/learn/python/compass/tests/MLIRAffine/affine-load.mlir"
+    # 示例1：测试单个文件
+    # single_file = "/home/gaoshihao/learn/python/compass/tests/mlir_core_tests/MLIRTOSA/tosa-add.mlir"
     # config = LoweringConfig.for_single_file(
     #     max_iterations=1000000,
     #     debug_mode=True,
     #     save_intermediate_states=True,
     #     mlir_opt_path="./tools/mlir-opt",
+    #     third_party_opt_path=None,
     #     output_dir="custom_output",
-    #     third_party_config_path="config/triton_config.yaml",
+    #     third_party_config_path=None,
     #     core_config_path="config/core_config.yaml",
     #     target_dialect="llvm",
     #     file_path=single_file,
@@ -122,11 +123,13 @@ def main():
         debug_mode=True,
         save_intermediate_states=True,
         output_dir="custom_output",
-        third_party_config_path=None,
+        third_party_config_path="config/torch_mlir_config.yaml",
         core_config_path="config/core_config.yaml",
-        target_dialect="llvm",
+        target_dialect="core",
+        mlir_opt_path="./tools/torch-mlir-opt",
+        third_party_opt_path="./tools/torch-mlir-opt",
         test_config=TestPathConfig(
-            test_path="tests/", 
+            test_path="tests/torch-mlir-test", 
             recursive_search=True
         )
     )

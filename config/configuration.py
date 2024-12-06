@@ -57,11 +57,15 @@ class LoweringConfig:
     # pass相关配置
     third_party_config_path: Path = None
     core_config_path: Path = Path("config/core_config.yaml")
-    target_dialect: str = "llvm"
+    target_dialect: Optional[str] = "llvm" 
     
     # mlir-opt 路径设置
-    mlir_opt_path: Path = Path("tools/torch-mlir-opt")
-    mlir_translate_path: Path = Path("tools/buddy-translate")
+    mlir_opt_path: Path = Path("tools/mlir-opt")
+    mlir_translate_path: Path = Path("tools/mlir-translate")
+    
+    # 第三方opt路径设置
+    third_party_opt_path: Path = None
+
     
     # 输出配置
     output_dir: Path = Path("output")
@@ -82,7 +86,15 @@ class LoweringConfig:
         """确保路径是Path对象"""
         self.core_config_path = Path(self.core_config_path)
         if self.third_party_config_path:
+            if self.third_party_opt_path is None:
+                logger.error("Don't have third_party_opt. Please set third_party_opt_path!")
+                exit(-1)
+            self.third_party_opt_path = Path(self.third_party_opt_path)
             self.third_party_config_path = Path(self.third_party_config_path)
+        
+        # 如果target_dialect是core，则说明target_dialect是Core dialect
+        if self.target_dialect == "core" or self.target_dialect is None:
+            self.target_dialect = None
         self.output_dir = Path(self.output_dir)
         self.mlir_opt_path = Path(self.mlir_opt_path)
         self.mlir_translate_path = Path(self.mlir_translate_path)

@@ -1,4 +1,16 @@
 dialects:
+  builtin:
+    description: "The builtin dialect contains a core set of Attributes, Operations, and Types that have wide applicability across a very large number of domains and abstractions."
+    passes:
+      - name: "reconcile-unrealized-casts"
+        description: "Simplify and eliminate unrealized conversion casts"
+        type: MODULE
+        next_pass: null
+      - name: "print-op-stats{json}"
+        description: "Print statistics of operations"
+        type: MODULE
+        next_pass: null
+
   affine:
     description: "Affine dialect for loop transformations"
     passes:
@@ -11,7 +23,7 @@ dialects:
     passes:
       - name: "convert-vector-to-scf"
         description: "Convert Vector dialect to SCF dialect"
-        next_pass: "lower-affine"
+        next_pass: "convert-scf-to-cf"
       - name: "convert-vector-to-llvm"
         description: "Convert Vector dialect directly to LLVM dialect"
         next_pass: null
@@ -22,6 +34,9 @@ dialects:
       - name: "convert-arith-to-llvm"
         description: "Convert Arith dialect to LLVM dialect"
         next_pass: null
+      - name: "arith-expand"
+        description: "Legalize Arith ops to be convertible to LLVM."
+        next_pass: "convert-arith-to-llvm"
 
   math:
     description: "The math dialect is intended to hold mathematical operations on integer and floating types beyond simple arithmetics. "
@@ -97,7 +112,6 @@ dialects:
   llvm:
     description: "llvm dialect"
 
-  
 
   tensor:
     description: "Tensor operations dialect"
@@ -105,22 +119,50 @@ dialects:
       - name: "one-shot-bufferize{bufferize-function-boundaries}"
         description: "Bufferize Tensor operations"
         next_pass: null
+      - name: "one-shot-bufferize{unknown-type-conversion=fully-dynamic-layout-map}"
+        description: "Bufferize tensor.cast op"
+        next_pass: null
+
 
   bufferization:
     description: "Bufferization dialect for memory management"
     passes:
       - name: "buffer-deallocation-pipeline"
-
         description: "Handle buffer deallocation for memory optimization"
         next_pass: null
 
   ml_program:
     description: "Bufferization dialect for memory management"
     passes:
-      - name: "-mlprogram-pipeline-globals"
+      - name: "mlprogram-pipeline-globals"
         type: FUNC
         description: "Handle buffer deallocation for memory optimization"
         next_pass: null
         
 
-    
+pipelines:
+  tosa-to-llvm:
+    stages:
+      - name: "Torch"
+        execute: "torch"
+
+      - name: "Torch Conversion"
+        execute: "torch_c"
+
+      - name: "TOSA Conversion"
+        execute: "tosa"
+        
+      - name: "Tensor Bufferization"
+        execute: "tensor"
+        
+      - name: "Bufferization deallocation"
+        execute: "bufferization"
+
+      - name: "Linalg Conversion"
+        execute: "linalg"
+
+      - name: "vector Conversion"
+        execute: "vector"
+
+      - name: "Conversion to LLVM"
+        execute: null

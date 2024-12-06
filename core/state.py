@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Set, Optional, Union, Tuple
 from collections import Counter, defaultdict
 import hashlib
+from core.Pass import PassPipeline
 from core.pass_exec_engine import MLIRPassExecutionEngine
 from core.Registry import Registry
 import logging
@@ -11,28 +12,30 @@ logger = logging.getLogger(__name__)
 
 class MLIRCodeState:
 
-    def __init__(self, content: str, 
+    def __init__(self,
+                 initial_content: str,
+                 content: str, 
                  registry: Registry, 
                  mlir_exec_engine: MLIRPassExecutionEngine,
-                 history_dialects: Tuple[str] = [],
-                 history_passes: Tuple[str] = []):
-        self.content: str = content  # MLIR内容
+                 history_dialects: Tuple[str] = (),
+                 pass_pipeline: PassPipeline = PassPipeline()):
+        self.initial_content: str = initial_content  # 原本的MLIR内容
+        self.content: str = content  # 当前MLIR内容
         self.registry: Registry = registry
         self.mlir_exec_engine: MLIRPassExecutionEngine = mlir_exec_engine
         self.dialects: Dict[str, Set[str]] # 当前MLIR代码的dialect和op集合
-        self.op_statistics: Dict[str, Counter] # 每个dialect中各个op的数量
+        self.op_statistics: Dict[str, int] # 每个op的数量
         self.available_dialects: Tuple[str] = ()
         self.available_passes: Tuple[str] = ()
         self.history_dialects: Tuple[str] = history_dialects
-        self.history_passes: Tuple[str] = history_passes
+        self.pass_pipeline: PassPipeline = pass_pipeline
         self.content_hash: bytes = hashlib.sha256(self.content.encode()).digest()
         self._gen_dialects_and_ops()
         self._gen_available_dialects_and_passes()
     
         
     def _gen_dialects_and_ops(self):
-        self.dialects, self.op_statistics = self.mlir_exec_engine.parse_mlir_content(self.content)
-        logger.warning(self.dialects)
+        self.dialects, self.op_statistics = self.mlir_exec_engine.parse_mlir_content(self.initial_content, self.pass_pipeline)
 
     def _gen_available_dialects_and_passes(self):
         self.available_dialects = self.dialects.keys()
@@ -51,20 +54,32 @@ class MLIRCodeState:
 
     def get_total_op_count(self) -> int:
         """获取所有算子的总数"""
-        return sum(sum(counter.values()) for counter in self.op_statistics.values())
+        return (sum(counter.values()) for counter in self.op_statistics.values())
 
-    def get_specific_op_count(self, dialect: str, op: str) -> int:
+    def get_specific_dialect_total_op_count(self, dialect: str) -> int:
         """
-        获取特定算子的数量
-        
+        获取特定dialect的op总数
+        """
+        op_count = self.get_specific_dialect_op_count(dialect)
+        total_count = 0
+        for op, count in op_count.items():
+            total_count += count
+        return total_count
+
+    def get_specific_dialect_op_count(self, dialect: str) -> Dict[str, int]:
+        """获取特定dialect的 {op: countr}
+
         Args:
-            dialect: dialect名称
-            op: 操作名称
-            
+            dialect (str): _description_
+
         Returns:
-            特定操作的数量
+            Dict: {op1: 3, op2: 3, ...}
         """
-        return self.op_statistics.get(dialect, Counter()).get(op, 0)
+        op_set = self.dialects[dialect]
+        op_count = {}
+        for op in op_set:
+            op_count[op] = self.op_statistics[op]
+        return op_count
 
     def get_hash(self) -> bytes:
         return self.content_hash
@@ -171,26 +186,55 @@ class MLIRCodeState:
         return self.get_hash() != other.get_hash()
 
     def __str__(self) -> str:
-        """返回MLIR代码状态的字符串表示"""
-        lines = ["MLIR Code State:"]
+        """返回MLIR代码状态的完整字符串表示，包含代码内容和统计信息"""
+        lines = ["=== MLIR Code State ==="]
+        
+        # 添加初始代码内容
+        lines.append("\n=== Initial MLIR Content ===")
+        lines.append(self.initial_content if self.initial_content else "[Empty]")
+        
+        # 添加当前代码内容
+        lines.append("\n=== Current MLIR Content ===")
+        lines.append(self.content if self.content else "[Empty]")
+        
+        # 添加统计信息头部
+        lines.append("\n=== Statistics ===")
         
         # 添加总操作数
-        total_ops = self.get_total_op_count()
-        lines.append(f"Total Operations: {total_ops}")
+        total_ops = sum(counter for counter in self.op_statistics.values())
+        lines.append(f"\nTotal Operations: {total_ops}")
         
-        # 添加每个dialect的信息
+        # 添加当前可用的dialect信息
+        lines.append(f"Available Dialects: {len(self.available_dialects)}")
+        lines.append(f"Dialects: {', '.join(sorted(self.available_dialects))}")
+        
+        # 添加可用的pass信息
+        lines.append(f"Available Passes: {len(self.available_passes)}")
+        
+        # 添加历史dialect信息
+        if self.history_dialects:
+            lines.append(f"History Dialects: {', '.join(self.history_dialects)}")
+        
+        # 添加当前pass pipeline信息
+        lines.append(f"\nCurrent Pass Pipeline: {self.pass_pipeline}")
+        
+        # 添加每个dialect的详细统计信息
         if self.dialects:
-            lines.append("\nDialects and Operations:")
-            for dialect, ops in self.dialects.items():
-                lines.append(f"\n{dialect}:")
-                dialect_ops = self.op_statistics.get(dialect, Counter())
-                for op in sorted(ops):
-                    count = dialect_ops.get(op, 0)
+            lines.append("\n=== Dialect Statistics ===")
+            for dialect, op_set in sorted(self.dialects.items()):
+                # 计算该dialect的总操作数
+                dialect_op_count = self.get_specific_dialect_op_count(dialect)
+                dialect_total = self.get_specific_dialect_total_op_count(dialect)
+                
+                lines.append(f"\n{dialect} (Total Ops: {dialect_total}):")
+                # 按操作数量降序排列显示各个操作
+                sorted_op_count = sorted(dialect_op_count.items(), key=lambda x: x[1], reverse=True)
+                for (op, count) in sorted_op_count:
                     lines.append(f"  - {op}: {count}")
                     
         return "\n".join(lines)
 
-    def try_pass(self, pass_name: str) -> Optional['MLIRCodeState']:
+    def try_pass(self, pass_pipeline: PassPipeline) -> Optional['MLIRCodeState']:
         """
         尝试应用一个pass
         
@@ -198,29 +242,37 @@ class MLIRCodeState:
             新状态 或 None
         """
 
-        logger.debug(f"Attempting pass: {pass_name}")
+        logger.debug(f"Attempting pass pipeline: {pass_pipeline}")
         
-        new_mlir_content = self.mlir_exec_engine.apply_pass(self.content, pass_name)
+        new_mlir_content = self.mlir_exec_engine.apply_pass(self.initial_content, pass_pipeline)
 
         if new_mlir_content is None:
             logger.debug(f"new_mlir_content is None")
             return None
 
         # 解析新状态
-        new_mlir_code_state = MLIRCodeState(content=new_mlir_content,
+        new_mlir_code_state = MLIRCodeState(initial_content=self.initial_content,
+                                            content=new_mlir_content,
                                             registry=self.registry,
                                             mlir_exec_engine=self.mlir_exec_engine, 
                                             history_dialects=self.history_dialects,
-                                            history_passes=(*self.history_passes, pass_name))
+                                            pass_pipeline=pass_pipeline)
         
         # 检查是否有变化
         if not new_mlir_code_state.is_different_from(self):
-            logger.debug(f"Pass {pass_name} did not change the MLIR")
+            logger.debug(f"{pass_pipeline} did not change the MLIR")
             return None
 
-        logger.debug(f"Pass: {pass_name} generates new MLIR state")
+        logger.debug(f"{pass_pipeline} generates new MLIR state")
         return new_mlir_code_state
 
     def clean_content(self):
         self.content = self.mlir_exec_engine.clean_code(self.content)
+
+    def available_dialects_are_core_dialects(self) -> bool:
+        for d in self.available_dialects:
+            if not self.registry.is_core_dialect(d):
+                return False
+                
+        return True
 

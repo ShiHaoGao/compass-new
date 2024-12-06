@@ -14,11 +14,15 @@ class Registry:
         self.dialects_lookup: Dict[str, Dialect] = {}
         self.pass_lookup: Dict[str, Pass] = {}
         self.pipelines: Dict[str, Pipeline] = {}
-        self.load_config(core_config_path)
+        self.core_dialects: Set[str] = set()
+        self.core_pipelines: Set[str] = set()
+        self.third_party_dialects: Set[str] = set()
+        self.third_party_pipelines: Set[str] = set()
+        self.load_core_config(core_config_path)
         if third_party_config_path:
-            self.load_config(third_party_config_path)
+            self.load_third_party_config(third_party_config_path)
         
-    def registry_dialects(self, config):
+    def registry_dialects(self, config, is_core: bool):
         if "dialects" in config:
             for dialect_name, dialect_info in config["dialects"].items():
                 if not dialect_name or not isinstance(dialect_info, dict):
@@ -45,7 +49,7 @@ class Registry:
                                 description=pass_info.get("description", ""),
                                 applicable_dialects={dialect_name},
                                 type=PassType[pass_type],
-                                next_pass=pass_info.get("next_pass")
+                                next_pass=pass_info.get("next_pass", None)
                             )
                             
                             dialect.add_conversion_pass(pass_obj)
@@ -55,11 +59,15 @@ class Registry:
                             raise ValueError(f"Error parsing pass {pass_info.get('name')}: {str(e)}")
                                 
                     self.dialects_lookup[dialect_name] = dialect
+                    if is_core is True:
+                        self.core_dialects.add(dialect_name)
+                    else:
+                        self.third_party_dialects.add(dialect_name)
                     
                 except Exception as e:
                     raise ValueError(f"Error parsing dialect {dialect_name}: {str(e)}")
 
-    def registry_pipeline(self, config):
+    def registry_pipelines(self, config, is_core: bool):
 
         for pipeline_name, pipeline_info in config["pipelines"].items():
             stages = []
@@ -75,8 +83,13 @@ class Registry:
                 stages=stages
             )
             self.pipelines[pipeline_name] = pipeline
-        
-    def load_config(self, config_path: str):
+            if is_core is True:
+                self.core_pipelines.add(pipeline_name)
+            else:
+                self.third_party_pipelines.add(pipeline_name)
+
+    
+    def load_third_party_config(self, config_path: str):
         path = Path(config_path)
         if not path.exists():
             raise FileNotFoundError(f"Pass config file not found: {config_path}")
@@ -90,10 +103,32 @@ class Registry:
             
 
             # Load dialects and passes
-            self.registry_dialects(config)
+            self.registry_dialects(config, is_core=False)
             # Load pipelines
             if "pipelines" in config:
-                self.registry_pipeline(config)
+                self.registry_pipelines(config, is_core=False)
+
+        except yaml.YAMLError as e:
+            raise ValueError(f"Error parsing YAML config: {e}")
+
+    def load_core_config(self, config_path: str):
+        path = Path(config_path)
+        if not path.exists():
+            raise FileNotFoundError(f"Pass config file not found: {config_path}")
+            
+        try:
+            with open(path) as f:
+                config = yaml.safe_load(f)
+            
+            if not isinstance(config, dict):
+                raise ValueError("Invalid config format")
+            
+
+            # Load dialects and passes
+            self.registry_dialects(config, is_core=True)
+            # Load pipelines
+            if "pipelines" in config:
+                self.registry_pipelines(config, is_core=True)
 
         except yaml.YAMLError as e:
             raise ValueError(f"Error parsing YAML config: {e}")
@@ -141,6 +176,12 @@ class Registry:
             for stage in pipeline.stages:
                 print(f"    - {stage.name}")
                 print(f"      Execute: {stage.execute}")
+ 
+    def is_core_dialect(self, dialect: str) -> bool:
+        if dialect in self.core_dialects:
+            return True
+        return False
+    
     
 if __name__ == "__main__":
     registry = Registry("config/pass_config.yaml")

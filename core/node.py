@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from enum import Enum, auto
 from .state import MLIRCodeState
 import random
+from agent.Agent import Agent
 import logging
 
 logger = logging.getLogger(__name__)
@@ -37,7 +38,7 @@ class Node(ABC):
         sequence = []
         for node in path[1:]:  # 跳过根节点
             if node.get_type() == NodeType.POST_PASS:
-                sequence.append(node.applied_pass)
+                sequence.extend(node.applied_passes)
         return sequence
 
     def add_child(self, node: 'Node'):
@@ -156,7 +157,7 @@ class PostDialectDecisionNode(Node):
         self.code_state: MLIRCodeState = code_state
         self.applied_dialect = applied_dialect
         self.active_passes = list(self.code_state.registry.get_dialect_passes(applied_dialect))
-
+        self.agent = Agent()
 
     def __str__(self) -> str:
         """返回Post-Dialect决策状态的字符串表示"""
@@ -181,39 +182,55 @@ class PostDialectDecisionNode(Node):
         return self.code_state
 
     def remove_pass(self, pass_name: str):
-        self.active_passes.remove(pass_name)
+        if pass_name in self.active_passes:
+            self.active_passes.remove(pass_name)
 
-    def select_next_pass(self) -> Optional[str]:
+    def select_next_passes(self) -> Optional[List[str]]:
         """选择下一个要尝试的pass"""
         # 删除历史使用过的passes
-        self.active_passes = [x for x in self.active_passes if x not in self.code_state.history_passes]
+        self.active_passes = [x for x in self.active_passes if x not in self.code_state.pass_pipeline]
         
         if len(self.active_passes) == 0:
             return None
 
-        chosen_pass = random.choice(self.active_passes)
-        # 选择第一个可用的pass
-        return chosen_pass
+        # 在active_passes中随机选择一个pass
+        chosen_pass_name = random.choice(self.active_passes)
+        
+        # 用agent推荐一个pass
+        # chosen_pass_name = self.agent.choose_pass(code_state=self.code_state, activate_passes=self.active_passes)
+        
+        #TODO：用rule选择一个pass
+        
+        selected_passes = [chosen_pass_name]
+        
+        # 处理next_pass逻辑
+        chosen_pass_obj = self.code_state.registry.get_pass_by_name(chosen_pass_name)
+        if chosen_pass_obj.has_next_pass():
+            next_pass_name = chosen_pass_obj.get_next_pass()
+            selected_passes.append(next_pass_name)
+        return selected_passes
 
     def try_gen_next_node(self) -> Optional['PostPassDecisionNode']:
         
         while True:
-            pass_name = self.select_next_pass()
+            selected_passes = self.select_next_passes()
             
-            if pass_name is None:
+            if selected_passes is None:
                 logger.debug(f"PostDialectDecisionNode: don't have active passes. Backtrack!")
                 return None # 当前节点已经无法继续生成新节点
             
-            logger.debug(f"history pass list: {self.code_state.history_passes}")
-            logger.debug(f"select new pass: {pass_name}")
-            new_pass_pipeline = list(self.code_state.history_passes)
-            new_pass_pipeline.append(pass_name)
-            logger.debug(f"Current pass pipeline: {new_pass_pipeline}")
-            self.remove_pass(pass_name)
+            logger.debug(f"History pass pipeline: {self.code_state.pass_pipeline}")
+            logger.debug(f"Selected new passes: {selected_passes}")
+            new_pass_pipeline = self.code_state.pass_pipeline
+            for pass_name in selected_passes:
+                new_pass_pipeline = new_pass_pipeline.append_pass(pass_name)
+                self.remove_pass(pass_name)
+
+            logger.debug(f"Current new pass pipeline: {new_pass_pipeline}")
             
-            new_mlir_code_state = self.code_state.try_pass(pass_name)
+            new_mlir_code_state = self.code_state.try_pass(new_pass_pipeline)
             if new_mlir_code_state is not None:
-                return PostPassDecisionNode(code_state=new_mlir_code_state, applied_pass=pass_name)
+                return PostPassDecisionNode(code_state=new_mlir_code_state, applied_passes=selected_passes)
             else:
                 logger.debug(f"new_mlir_code_state is None.")
                 continue
@@ -225,18 +242,19 @@ class PostDialectDecisionNode(Node):
 class PostPassDecisionNode(Node):
     
     def __init__(self, code_state: MLIRCodeState,
-                 applied_pass: Optional[str]):
+                 applied_passes: Optional[List[str]]):
         """初始化 PostPassDecisionState
 
         Args:
             code_state: 当前MLIR代码状态
-            applied_pass: 应用的pass
+            applied_passes: 应用的passes
             active_dialects: 应用当前pass激活的dialect列表
         """
         super().__init__(node_type=NodeType.POST_PASS)
         self.code_state: MLIRCodeState = code_state
         self.active_dialects = list(code_state.get_available_dialects())
-        self.applied_pass: str = applied_pass
+        self.applied_passes: List[str] = applied_passes
+        self.agent = Agent()
 
     def __str__(self) -> str:
         """返回Post-Pass决策状态的字符串表示"""
@@ -249,8 +267,8 @@ class PostPassDecisionNode(Node):
             for pass_name in self.active_dialects:
                 lines.append(f"  - {pass_name}")
                 
-        if self.applied_pass:
-            lines.append(f"\nApplied Pass: {self.applied_pass}")
+        if self.applied_passes:
+            lines.append(f"\nApplied Pass: {self.applied_passes}")
             
         return "\n".join(lines)
     
@@ -268,12 +286,21 @@ class PostPassDecisionNode(Node):
         if len(self.active_dialects) == 0:
             return None
         
+        logger.debug(f"available_dialects: {self.code_state.get_available_dialects()}")
         logger.debug(f"active_dialects: {self.active_dialects}")
         
+        # 随机选择一个dialect
         chosen_dialect = random.choice(self.active_dialects)
+        
+        # 用rule选择一个dialect
         if self.code_state.registry.has_pipeline():
             dialects = self.code_state.registry.get_pipeline_by_name("tosa-to-llvm").get_stage_dialects_from(self.active_dialects)
-            chosen_dialect = random.choice(dialects)
+            if len(dialects) != 1:
+                # 用agent选择一个dialect
+                # chosen_dialect = self.agent.choose_dialect(code_state=self.code_state, activate_dialects=dialects)
+                chosen_dialect = random.choice(dialects)
+            else:
+                chosen_dialect = random.choice(dialects)
         return chosen_dialect
     
     def try_gen_next_node(self) -> Optional[PostDialectDecisionNode]:
@@ -291,17 +318,18 @@ class PostPassDecisionNode(Node):
         self.remove_dialect(dialect_name)
         
         
-        new_mlir_code_state = MLIRCodeState(content=self.code_state.content,
+        new_mlir_code_state = MLIRCodeState(initial_content=self.code_state.initial_content,
+                        content=self.code_state.content,
                       registry=self.code_state.registry,
                       mlir_exec_engine=self.code_state.mlir_exec_engine,
                       history_dialects=(*self.code_state.history_dialects, dialect_name),
-                      history_passes=self.code_state.history_passes)
-        
+                      pass_pipeline=self.code_state.pass_pipeline)
+
         return PostDialectDecisionNode(code_state=new_mlir_code_state, applied_dialect=dialect_name)
     
 class InitialNode(PostPassDecisionNode):
     
     def __init__(self, code_state: MLIRCodeState):
-        super().__init__(code_state=code_state, applied_pass=None)
+        super().__init__(code_state=code_state, applied_passes=None)
 
         
