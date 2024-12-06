@@ -1,1 +1,4 @@
 pyyaml
+langchain
+openai
+langchain-openai

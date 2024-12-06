@@ -21,7 +21,9 @@ class DynamicLowering:
         # 根据配置初始化组件
         self.registry = Registry(core_config_path=self.config.core_config_path,
                                 third_party_config_path=self.config.third_party_config_path)
-        self.mlir_exec_engine = MLIRPassExecutionEngine(registry=self.registry, mlir_opt_path=self.config.mlir_opt_path)
+        self.mlir_exec_engine = MLIRPassExecutionEngine(registry=self.registry, 
+                                                        mlir_opt_path=self.config.mlir_opt_path, 
+                                                        third_party_opt_path=self.config.third_party_opt_path)
         self.statistics = PassStatisticsCollector()
         self.history = []
         self.successful_pass_pipeline = []
@@ -31,10 +33,13 @@ class DynamicLowering:
         self.config.output_dir.mkdir(parents=True, exist_ok=True)
     
     def is_successful_lowering_to_target(self, mlir_code_state: MLIRCodeState) -> bool:
-        dialects = mlir_code_state.get_available_dialects()
-        if len(dialects) == 1 and self.config.target_dialect in dialects:
-            return True
-        return False
+        if self.config.target_dialect is None:
+            return mlir_code_state.available_dialects_are_core_dialects()
+        else:
+            dialects = mlir_code_state.get_available_dialects()
+            if len(dialects) == 1 and self.config.target_dialect in dialects:
+                return True
+            return False
     
     def lower(self, input_file: str) -> Optional[MLIRCodeState]:
         """
@@ -47,7 +52,10 @@ class DynamicLowering:
         initial_content = self.mlir_exec_engine.clean_code(initial_content)
         
         # 解析初始状态
-        initial_mlir_code_state = MLIRCodeState(content=initial_content, registry=self.registry, mlir_exec_engine=self.mlir_exec_engine)
+        initial_mlir_code_state = MLIRCodeState(initial_content=initial_content,
+                                                content=initial_content,
+                                                registry=self.registry,
+                                                mlir_exec_engine=self.mlir_exec_engine)
         initial_node = InitialNode(code_state=initial_mlir_code_state)
             
         # 初始化搜索树
@@ -104,28 +112,28 @@ class DynamicLowering:
 
     def _print_changes(self, changes: dict):
         """打印状态变化信息"""
-        self.logger.debug("\nChanges after pass:")
+        logger.debug("\nChanges after pass:")
         
         if changes['new_ops']:
-            self.logger.debug("\nNew operators:")
+            logger.debug("\nNew operators:")
             for dialect, ops in changes['new_ops'].items():
-                self.logger.debug(f"  {dialect} dialect:")
+                logger.debug(f"  {dialect} dialect:")
                 for op, count in ops.items():
-                    self.logger.debug(f"    + {op}: {count}")
+                    logger.debug(f"    + {op}: {count}")
                     
         if changes['removed_ops']:
-            self.logger.debug("\nRemoved operators:")
+            logger.debug("\nRemoved operators:")
             for dialect, ops in changes['removed_ops'].items():
-                self.logger.debug(f"  {dialect} dialect:")
+                logger.debug(f"  {dialect} dialect:")
                 for op, count in ops.items():
-                    self.logger.debug(f"    - {op}: {count}")
+                    logger.debug(f"    - {op}: {count}")
                     
         if changes['changed_ops']:
-            self.logger.debug("\nChanged operator counts:")
+            logger.debug("\nChanged operator counts:")
             for dialect, ops in changes['changed_ops'].items():
-                self.logger.debug(f"  {dialect} dialect:")
+                logger.debug(f"  {dialect} dialect:")
                 for op, diff in ops.items():
-                    self.logger.debug(f"    {op}: {diff:+d}")
+                    logger.debug(f"    {op}: {diff:+d}")
 
     def generate_report(self) -> dict:
         """生成详细的转换报告"""

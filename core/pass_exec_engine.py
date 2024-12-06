@@ -1,9 +1,9 @@
 from typing import Dict, Set, List, Tuple, Optional, Counter, Any
 from collections import Counter, defaultdict
 import subprocess
-import re
+import json
 from .Registry import Registry
-from .Pass import PassType, Pass
+from .Pass import PassType, Pass, PassPipeline
 from pathlib import Path
 import os
 
@@ -14,7 +14,8 @@ class MLIRPassExecutionEngine:
     
     def __init__(self, 
                  registry: Optional[Registry],
-                 mlir_opt_path: str):
+                 mlir_opt_path: str,
+                 third_party_opt_path: Optional[str]):
         """
         
         Args:
@@ -23,6 +24,8 @@ class MLIRPassExecutionEngine:
         """
         self.registry = registry
         self.mlir_opt_path = Path(mlir_opt_path)
+        if third_party_opt_path:
+            self.third_party_opt_path = Path(third_party_opt_path)
         
         # 验证环境
         self._validate_environment()
@@ -38,21 +41,19 @@ class MLIRPassExecutionEngine:
                 f"buddy-opt at {self.mlir_opt_path} is not executable"
             )
         
-    
-    def parse_mlir_content(self, mlir_content: str) -> Tuple[Dict[str, Set[str]], Dict[str, Counter]]:
+    def parse_mlir_content(self, mlir_content: str, pass_pipeline: PassPipeline) -> Tuple[Dict[str, Set[str]], Dict[str, Counter]]:
         """
         解析MLIR内容中的dialect、op集合和op数量
         返回 (Dict[dialect_name, Set[op_names]], Dict[dialect_name, Counter[op_name, count]])
         """
-                # 输入验证
+        
+        # 输入验证
         if not mlir_content or not mlir_content.strip():
             raise ValueError("Empty MLIR content")
         
-        cmd = [self.mlir_opt_path,
-            '--print-op-stats'
-            ]
-
-        # logger.debug(f"apply pass command: {cmd}")
+        print_op_stats_pipeline = pass_pipeline.append_pass('''print-op-stats{json}''')
+        
+        cmd = self._build_command(print_op_stats_pipeline)
 
         
         process = subprocess.Popen(
@@ -69,57 +70,34 @@ class MLIRPassExecutionEngine:
         if return_code != 0:
             logger.error(f"Command failed with error: {error}")
 
-        dialect_ops: Dict[str, Set[str]] = defaultdict(set)
-        op_counts: Dict[str, Counter] = defaultdict(Counter)
-        
-        pattern = r'([a-zA-Z_]+)\.([a-zA-Z_\.]+)'
-        matches = re.finditer(pattern, error)
-
-        for match in matches:
-            dialect = match.group(1)
-            op = match.group(2)
-            dialect_ops[dialect].add(op)
-            op_counts[dialect][op] += 1
+        try:
+            result = json.loads(error)
+            dialect_ops: Dict[str, Set[str]] = defaultdict(set)
+            op_counts: Dict[str, Counter] = defaultdict(Counter)
+            for op, count in result.items():
+                dialect = op.split('.')[0]
+                dialect_ops[dialect].add(op)
+                op_counts[op] = count
+        except json.JSONDecodeError as e:
+            logger.error(error)
+            raise ValueError(f"Invalid JSON format: {e}")
 
         if 'builtin' in dialect_ops:
             del dialect_ops['builtin']
         
         return dialect_ops, op_counts
     
-    # def parse_mlir_content(self, mlir_content: str) -> Tuple[Dict[str, Set[str]], Dict[str, Counter]]:
-    #     """
-    #     解析MLIR内容中的dialect、op集合和op数量
-    #     返回 (Dict[dialect_name, Set[op_names]], Dict[dialect_name, Counter[op_name, count]])
-    #     """
-    #     dialect_ops: Dict[str, Set[str]] = defaultdict(set)
-    #     op_counts: Dict[str, Counter] = defaultdict(Counter)
+    def _build_command(self, pass_pipeline: PassPipeline) -> List[str]:
+        """构建完整的命令"""   
         
-    #     pattern = r'([a-zA-Z_]+)\.([a-zA-Z_\.]+)'
-    #     matches = re.finditer(pattern, mlir_content)
+        pipeline = ""
         
-    #     for match in matches:
-    #         dialect = match.group(1)
-    #         op = match.group(2)
-    #         dialect_ops[dialect].add(op)
-    #         op_counts[dialect][op] += 1
-        
-    #     return dialect_ops, op_counts
-
-
-    def _build_command(self, mlir_pass: str) -> List[str]:
-        """构建完整的命令"""
-        
-        mlir_pass_obj = self.registry.get_pass_by_name(mlir_pass)
-        passes = []
-        passes.append(mlir_pass_obj.name)
-        if mlir_pass_obj.has_next_pass():
-            passes.append(mlir_pass_obj.get_next_pass())
-        passes_str = ", ".join(f'{x}' for x in passes)
-        
-        if mlir_pass_obj.type == PassType.MODULE:
-            pipeline = f'builtin.module({passes_str})'
-        else:
-            pipeline = f'builtin.module({mlir_pass_obj.type.value}({passes_str}))'
+        for pass_name in pass_pipeline:
+            pass_obj = self.registry.get_pass_by_name(pass_name)
+            pipeline += pass_obj.get_str()
+            pipeline += ", "
+        pipeline = pipeline[:-2]
+        pipeline = f'builtin.module({pipeline})'
         
         return [
             self.mlir_opt_path,
@@ -150,7 +128,7 @@ class MLIRPassExecutionEngine:
 
         return output
 
-    def apply_pass(self, mlir_content: str, mlir_pass: str) -> Optional[str]:
+    def apply_pass(self, mlir_content: str, pass_pipeline: PassPipeline) -> Optional[str]:
         """
         应用pass并返回处理后的MLIR内容
         """
@@ -159,9 +137,9 @@ class MLIRPassExecutionEngine:
         if not mlir_content or not mlir_content.strip():
             raise ValueError("Empty MLIR content")
         
-        cmd = self._build_command(mlir_pass)
+        cmd = self._build_command(pass_pipeline)
         
-        logger.debug(f"apply pass command: {cmd}")
+        logger.debug(f"Apply pass pipeline command: {cmd}")
         
         process = subprocess.Popen(
             cmd,
@@ -174,7 +152,7 @@ class MLIRPassExecutionEngine:
         output, error = process.communicate(input=mlir_content)
         
         if process.returncode != 0:
-            logger.debug(f"Pass {mlir_pass} failed") # : {error}
+            logger.debug(f"Pass {pass_pipeline} failed") # : {error}
             return None
             
         return output

@@ -1,0 +1,184 @@
+dialects:
+  tm_tensor:
+    description: tm_tensor dialect
+    passes:
+    - name: tm-tensor-to-loops
+      description: Convert TMTensor ops to loops and Linalg ops.
+      type: FUNC
+      next_pass: null
+    - name: tm-tensor-bufferize
+      description: Bufferize the TMTensor dialect
+      type: FUNC
+      next_pass: null
+  torch:
+    description: torch dialect
+    passes:
+    - name: convert-torch-to-arith
+      description: Convert recognized Torch ops to Std ops
+      type: FUNC
+      next_pass: null
+    - name: convert-torch-to-scf
+      description: Convert recognized Torch ops to SCF ops
+      type: FUNC
+      next_pass: null
+    - name: convert-torch-to-linalg
+      description: Convert ATen ops to linalg ops.
+      type: FUNC
+      next_pass: null
+    - name: convert-torch-to-tensor
+      description: Converts any `Torch` operators that were expressible as `Tensor`
+        dialect operations.
+      type: FUNC
+      next_pass: null
+    - name: convert-torch-to-tosa
+      description: This pass assumes that TOSA ops are responsible for emitting error
+        guards in case of shape mismatches.
+      type: FUNC
+      next_pass: null
+    - name: convert-torch-to-tmtensor
+      description: Convert ATen ops to tmtensor/linalg ops.
+      type: FUNC
+      next_pass: null
+    - name: convert-torch-conversion-to-mlprogram
+      description: Convert TorchConversion ops to mlprogram ops.
+      type: MODULE
+      next_pass: null
+    - name: convert-torch-to-stablehlo
+      description: Convert Torch ops to Stablehlo ops.
+      type: FUNC
+      next_pass: null
+    - name: torch-globalize-object-graph
+      description: Converts TorchScript object graphs to a globalized form
+      type: MODULE
+      next_pass: null
+    - name: torch-prepare-for-globalize-object-graph
+      description: Lowering in preparation for globalizing
+      type: MODULE
+      next_pass: null
+    - name: torch-adjust-calling-conventions
+      description: Adjusts the calling conventions of functions in the module, with
+        the aim of preparing them for backends and further lowering passes.
+      type: MODULE
+      next_pass: null
+    - name: torch-inline-global-slots
+      description: Inlines torch.global_slot ops when it is safe to do so.
+      type: MODULE
+      next_pass: null
+    - name: torch-reduce-op-variants
+      description: Reduces variants of ops to a smaller set of ops.
+      type: FUNC
+      next_pass: null
+    - name: torch-maximize-value-semantics
+      description: Use value-semantic tensors where possible.
+      type: FUNC
+      next_pass: null
+    - name: torch-refine-public-return
+      description: Refine public return
+      type: MODULE
+      next_pass: null
+    - name: torch-decompose-complex-ops
+      description: Decompose complicated torch operations
+      type: FUNC
+      next_pass: null
+    - name: torch-scalarize-shapes
+      description: Takes common shape computation operations and scalarizes them.
+      type: FUNC
+      next_pass: null
+    - name: torch-recompose-complex-ops
+      description: Recompose torch operations that have been decomposed by TorchScript
+      type: FUNC
+      next_pass: null
+    - name: torch-fuse-quantized-ops
+      description: 'QDQ: Fuse recognized QDQ op sequences.'
+      type: FUNC
+      next_pass: null
+    - name: torch-match-quantized-custom-ops
+      description: Match quantized operations that occur in different namespace.
+      type: FUNC
+      next_pass: null
+    - name: torch-reify-shape-calculations
+      description: Reify shape calculations.
+      type: MODULE
+      next_pass: null
+    - name: torch-simplify-shape-calculations
+      description: Simplify reified shape calculations.
+      type: FUNC
+      next_pass: null
+    - name: torch-reify-dtype-calculations
+      description: Reify dtype calculations.
+      type: MODULE
+      next_pass: null
+    - name: torch-simplify-dtype-calculations
+      description: Simplify reified dtype calculations.
+      type: FUNC
+      next_pass: null
+    - name: torch-drop-abstract-interp-calculations
+      description: Drop reified abstract interpretation calculations.
+      type: FUNC
+      next_pass: null
+    - name: torch-erase-module-initializer
+      description: Erase the `torch.global_slot.module_initializer` op.
+      type: MODULE
+      next_pass: null
+    - name: torch-lower-to-backend-contract
+      description: Perform simplifications until the backend contract is satisfied.
+      type: MODULE
+      next_pass: null
+    - name: torch-verify-backend-contract-no-decompositions
+      description: Check that program satisfies backend contract.
+      type: MODULE
+      next_pass: null
+    - name: torch-restructure-non-constant-axes
+      description: Ensure that every Reduction.cpp op has a constant reduction axis.
+      type: FUNC
+      next_pass: null
+  torch::onnx_c:
+    description: torch::onnx_c dialect
+    passes:
+    - name: convert-torch-onnx-to-torch
+      description: Converts equivalent ONNX custom ops to built-in equivalents.
+      type: FUNC
+      next_pass: null
+  torch_c:
+    description: torch_c dialect
+    passes:
+    - name: torch-func-backend-type-conversion
+      description: Partial type conversion pass analogous in scope to the upstream
+        `func-bufferize` pass. See details there.
+      type: MODULE
+      next_pass: null
+    - name: torch-func-backend-type-conversion-for-stablehlo
+      description: Partial type conversion pass analogous in scope to the upstream
+        `func-bufferize` pass. See details there.
+      type: MODULE
+      next_pass: null
+    - name: torch-finalizing-backend-type-conversion
+      description: Analogous in scope to the upstream `finalizing-bufferize` pass.
+        See details there.
+      type: FUNC
+      next_pass: null
+    - name: torch-finalizing-backend-type-conversion-for-stablehlo
+      description: Analogous in scope to the upstream `finalizing-bufferize` pass.
+        See details there.
+      type: FUNC
+      next_pass: null
+    - name: torch-verify-linalg-on-tensors-backend-contract
+      description: null
+      type: MODULE
+      next_pass: null
+    - name: torch-verify-tosa-backend-contract
+      description: null
+      type: MODULE
+      next_pass: null
+    - name: torch-verify-stablehlo-backend-contract
+      description: null
+      type: MODULE
+      next_pass: null
+    - name: torch-unpack-quant-tensor
+      description: null
+      type: FUNC
+      next_pass: null
+    - name: torch-convert-custom-quant-op
+      description: null
+      type: FUNC
+      next_pass: null
