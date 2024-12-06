@@ -671,6 +671,28 @@ dialects:
         description: Tests floating point range analysis.
         type: MODULE
         next_pass: null
+  
+  vm:
+    description: ""
+    passes:
+      - name: iree-vm-transformation-pipeline
+      - name: iree-vm-hoist-inlined-rodata
+        type: VMMODULE
+      - name: iree-vm-deduplicate-rodata
+        type: VMMODULE
+      - name: iree-vm-drop-empty-module-initializers
+        type: VMMODULE
+      - name: iree-vm-drop-unused-calls
+        type: VMMODULE
+      - name: iree-vm-global-initialization
+        type: VMMODULE
+      - name: iree-vm-ordinal-allocation
+        type: VMMODULE
+      - name: iree-vm-resolve-rodata-loads
+        type: VMMODULE
+      - name: iree-vm-sink-defining-ops
+        type: VMMODULE
+  
   vmvx:
     description: vmvx dialect
     passes:

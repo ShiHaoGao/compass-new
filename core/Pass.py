@@ -16,6 +16,7 @@ class PassType(Enum):
     MODULE = ""
     HWMODULE = "hw.module"
     CALYX_COMPONENTOP = "calyx.component"
+    VMMODULE = "vm.module"
 
 T = TypeVar('T', str, PassType)
 
