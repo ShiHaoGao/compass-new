@@ -135,10 +135,10 @@ def main():
         third_party_config_path="config/circt_config.yaml",
         third_party_opt_path="./tools/circt-opt",
         target_type="custom",
-        illegal_dialects=["verif"],
+        illegal_dialects=["fsm"],
         target_dialects=["sv"],
         test_config=TestPathConfig(
-            test_path="tests/circt_tests/Conversion/VerifToSV", 
+            test_path="output_modules", 
             recursive_search=True
         )
     )
