@@ -1,0 +1,98 @@
+passes:
+- description: Legalize StableHLO to LinAlg
+  dialect: StableHLO
+  name: stablehlo-legalize-to-linalg
+  type: null
+passes:
+- description: Legalize StableHLO to TOSA
+  dialect: ::mlir::tosa::TosaDialect
+  name: stablehlo-legalize-to-tosa
+  type: mlir::func::FuncOp
+- description: Prepare StableHLO for legalization to TOSA
+  dialect: ::mlir::tosa::TosaDialect
+  name: stablehlo-prepare-for-tosa
+  type: mlir::func::FuncOp
+- description: Legalize StableHLO Quantized operations to TOSA rescale operations
+  dialect: ::mlir::tosa::TosaDialect
+  name: stablehlo-quant-legalize-to-tosa-rescale
+  type: mlir::func::FuncOp
+- description: Legalize TOSA rescales to StableHlo primitive math operations
+  dialect: ::mlir::stablehlo::StablehloDialect
+  name: tosa-rescale-legalize-to-stablehlo
+  type: mlir::func::FuncOp
+passes:
+- description: Inserts interpreter.probe ops in a StableHLO program.
+  dialect: mlir::stablehlo::interpreter::InterpreterDialect
+  name: interpreter-instrument-with-probe
+  type: ModuleOp
+passes:
+- description: Legalizes from CHLO ops flow to StableHLO and Shape ops.
+  dialect: mlir::stablehlo::StablehloDialect
+  name: chlo-legalize-to-stablehlo
+  type: func::FuncOp
+- description: Legalize shape-related ops to StableHLO.
+  dialect: mlir::stablehlo::StablehloDialect
+  name: shape-legalize-to-stablehlo
+  type: func::FuncOp
+- description: Folds StableHLO operations.
+  dialect: mlir::stablehlo::StablehloDialect
+  name: stablehlo-aggressive-folder
+  type: func::FuncOp
+- description: Canonicalizes StableHLO operations.
+  dialect: mlir::stablehlo::StablehloDialect
+  name: stablehlo-aggressive-simplification
+  type: func::FuncOp
+- description: Canonicalizes dynamic StableHLO ops into static ops.
+  dialect: mlir::stablehlo::StablehloDialect
+  name: stablehlo-canonicalize-dynamism
+  type: func::FuncOp
+- description: Compatibility expander for StableHLO operations.
+  dialect: mlir::stablehlo::StablehloDialect
+  name: stablehlo-compatibility-expander
+  type: mlir::func::FuncOp
+- description: Pass to transform the IR to be on signless integers.
+  dialect: mlir::stablehlo::StablehloDialect
+  name: stablehlo-convert-to-signless
+  type: ModuleOp
+- description: Replaces composite ops with a call to their decomposition.
+  dialect: mlir::stablehlo::StablehloDialect
+  name: stablehlo-legalize-composite-to-call
+  type: func::FuncOp
+- description: Legalize deprecated ops to well-supported ops.
+  dialect: mlir::stablehlo::StablehloDialect
+  name: stablehlo-legalize-deprecated-ops
+  type: func::FuncOp
+- description: Fuse (de-quantize, floating-point operation and quantize) pattern into
+    StableHLO quantized operation.
+  dialect: mlir::stablehlo::StablehloDialect
+  name: stablehlo-legalize-qdq-to-quantized-op
+  type: mlir::func::FuncOp
+- description: Decompose quantized StableHLO operation to (de-quantize, floating-point
+    operation and quantize) pattern.
+  dialect: mlir::stablehlo::StablehloDialect
+  name: stablehlo-legalize-quantized-op-to-qdq
+  type: mlir::func::FuncOp
+- description: Convert from StableHLO quantized ops to StableHLO primitive math ops.
+  dialect: mlir::stablehlo::StablehloDialect
+  name: stablehlo-legalize-quant-to-math
+  type: mlir::func::FuncOp
+- description: Legalize StableHLO to VHLO.
+  dialect: mlir::vhlo::VhloDialect
+  name: stablehlo-legalize-to-vhlo
+  type: ModuleOp
+- description: Refines the argument shapes of the main function.
+  dialect: mlir::stablehlo::StablehloDialect
+  name: stablehlo-refine-arguments
+  type: ModuleOp
+- description: Refines shapes across a StableHLO program.
+  dialect: mlir::stablehlo::StablehloDialect
+  name: stablehlo-refine-shapes
+  type: ModuleOp
+- description: Legalize VHLO to StableHLO.
+  dialect: mlir::stablehlo::StablehloDialect
+  name: vhlo-legalize-to-stablehlo
+  type: ModuleOp
+- description: Convert between versions of VHLO.
+  dialect: mlir::vhlo::VhloDialect
+  name: vhlo-to-version
+  type: null

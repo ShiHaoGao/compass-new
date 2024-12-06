@@ -87,6 +87,62 @@ prompt_template_extract = ChatPromptTemplate.from_messages(
     ]
 )
 
+prompt_template_extract_from_gpt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+'''
+You are an MLIR pass extraction expert. Your task is to analyze the provided MLIR code and extract only relevant information about passes. Specifically, for each pass, you need to provide the following attributes:
+	1.	Name: The name of the pass (e.g., derived from Pass<"...">).
+	2.	Type: The type of the pass (if explicitly provided; otherwise, default to ModuleOp).
+	3.	Dialect: The dialect the pass belongs to, inferred from the pass name, summary, description, or any mentioned dialects in the code. If the dialect cannot be determined, return “Unspecified”.
+	4.	Description: A concise description of the pass derived from the description or summary.
+
+If a segment of code does not include information related to a pass, ignore it entirely. Return all results in a structured YAML format.
+
+Example Input:
+
+def ConvertLinalgToLoopsPass : Pass<"convert-linalg-to-loops"> {{
+  let summary = "Lower the operations from the linalg dialect into loops";
+  let description = [{{
+    Lowers the `linalg` ops to loop nests using `scf.for`.
+
+    Pre-condition: the operands used by the `linalg` ops have buffer semantics,
+    i.e., tensor operands and results must be converted to memrefs via
+    bufferization.
+  }}];
+  let dependentDialects = [
+    "linalg::LinalgDialect",
+    "scf::SCFDialect",
+    "affine::AffineDialect"
+  ];
+}}
+
+Expected Output:
+
+passes:
+  - name: "convert-linalg-to-loops"
+    type: ModuleOp
+    dialect: "linalg"
+    description: "Lowers the `linalg` ops to loop nests using `scf.for`."
+
+If the provided input does not reference a pass, return nothing.
+
+Task:
+
+Analyze and extract the required attributes for each pass in the input MLIR code. Maintain the structure and accuracy, and ensure the dialect attribution is inferred logically from the code context.
+
+'''
+                ,
+        ),
+        # Please see the how-to about improving performance with
+        # reference examples.
+        # MessagesPlaceholder("examples"),
+        ("human", "{text}"),
+    ]
+)
+
+
 prompt_template_judge = ChatPromptTemplate.from_messages(
     [
         (
@@ -172,7 +228,8 @@ Pass的name是"torch-func-backend-type-conversion-for-stablehlo",Pass的type是M
 examples_judge = [
     {
         "role": "user",
-        "content": """ 
+        "content": 
+        """ 
     
 def InlineGlobalSlots : Pass<"torch-inline-global-slots", "ModuleOp"> {
 let summary = "Inlines torch.global_slot ops.";
@@ -271,7 +328,7 @@ def do_extract(text):
     data_dict = data.model_dump()
 
     # 写入 YAML 文件
-    with open("extract_pass_hlo.yaml", "a") as yaml_file:
+    with open("extract_pass_hlo_fromgpt.yaml", "a") as yaml_file:
         yaml.dump(data_dict, yaml_file, default_flow_style=False, allow_unicode=True)
 
 
