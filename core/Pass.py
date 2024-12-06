@@ -14,6 +14,8 @@ class PassType(Enum):
     """
     FUNC = "func.func"
     MODULE = ""
+    HWMODULE = "hw.module"
+    CALYX_COMPONENTOP = "calyx.component"
 
 T = TypeVar('T', str, PassType)
 
@@ -40,7 +42,7 @@ class Pass:
         if self.type == PassType.MODULE:
             return self.name
         else:
-            return f'func.func({self.name})'
+            return f'{self.type.value}({self.name})'
 
 @dataclass   
 class PassPipeline:

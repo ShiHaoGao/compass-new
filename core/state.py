@@ -45,6 +45,10 @@ class MLIRCodeState:
         available_pass_list = []
         for d in self.available_dialects:
             available_pass_list.extend(self.registry.get_dialect_passes(d))
+        
+        # add global passes:
+        available_pass_list.extend(self.registry.get_dialect_passes('global'))    
+            
         self.available_passes = (available_pass_list)
 
     def get_available_dialects(self) -> Tuple:

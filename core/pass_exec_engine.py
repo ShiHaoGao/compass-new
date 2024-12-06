@@ -89,28 +89,89 @@ class MLIRPassExecutionEngine:
     #         del dialect_ops['builtin']
         
     #     return dialect_ops, op_counts
-    
-    def parse_mlir_content(self, mlir_content: str) -> Tuple[Dict[str, Set[str]], Dict[str, Counter]]:
+        
+    def parse_mlir_content(self, mlir_content: str) -> Tuple[Dict[str, Set[str]], Dict[str, int]]:
         """
         解析MLIR内容中的dialect、op集合和op数量
         返回 (Dict[dialect_name, Set[op_names]], Dict[dialect_name, Counter[op_name, count]])
+        
+        Raises:
+            ValueError: 当MLIR内容为空时
+            SubprocessError: 当mlir-opt执行失败时
+            JSONDecodeError: 当JSON解析失败时
+            RuntimeError: 当正则表达式匹配失败时
         """
-        dialect_ops: Dict[str, Set[str]] = defaultdict(set)
-        op_counts: Dict[str, Counter] = defaultdict(Counter)
         
-        pattern = r'([a-zA-Z_]+)\.([a-zA-Z_\.]+)'
-        matches = re.finditer(pattern, mlir_content)
+        if not mlir_content or not mlir_content.strip():
+            raise ValueError("Empty MLIR content")
         
-        for match in matches:
-            dialect = match.group(1)
-            op = match.group(2)
-            dialect_ops[dialect].add(op)
-            op_counts[dialect][op] += 1
+        print_op_stats_pipeline = (r'''builtin.module(print-op-count{emission-format=json})''')
         
-        if 'builtin' in dialect_ops:
-            del dialect_ops['builtin']
-        
-        return dialect_ops, op_counts
+        try:
+            cmd = [
+                self.mlir_opt_path,
+                '--pass-pipeline', 
+                print_op_stats_pipeline
+            ]
+            
+            process = subprocess.Popen(
+                cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            
+            output, error = process.communicate(input=mlir_content)
+            
+            if process.returncode != 0:
+                raise subprocess.SubprocessError(f"mlir-opt failed: {error}")
+                
+            start = output.find('{')
+            if start == -1:
+                raise json.JSONDecodeError("No JSON object found", output, 0)
+            
+            count = 1
+            end = start + 1
+            
+            while count > 0 and end < len(output):
+                if output[end] == '{':
+                    count += 1
+                elif output[end] == '}':
+                    count -= 1
+                end += 1
+                
+            if count != 0:
+                raise json.JSONDecodeError("Invalid JSON format", output, end)
+                
+            json_str = output[start:end]
+            logger.debug(f"json string: {json_str}")
+            
+            dialect_ops: Dict[str, Set[str]] = defaultdict(set)
+            op_counts: Dict[str, int] = defaultdict(int)
+            
+            pattern = r'([a-zA-Z_]+)\.([a-zA-Z_\.]+)'
+            matches = re.finditer(pattern, json_str)
+            
+            match_found = False
+            for match in matches:
+                match_found = True
+                dialect = match.group(1)
+                op = match.group(2)
+                dialect_ops[dialect].add(op)
+                op_counts[op] += 1
+                
+            if not match_found:
+                raise RuntimeError("No dialect operations found in JSON")
+            
+            if 'builtin' in dialect_ops:
+                del dialect_ops['builtin']
+            
+            return dialect_ops, op_counts
+            
+        except (subprocess.SubprocessError, json.JSONDecodeError, RuntimeError) as e:
+            logger.error(f"Error parsing MLIR content: {str(e)}")
+            raise
     
     def _build_command(self, pass_pipeline: PassPipeline) -> List[str]:
         """构建完整的命令"""   
@@ -131,10 +192,9 @@ class MLIRPassExecutionEngine:
         ]
 
     def clean_code(self, mlir_content: str) -> Optional[str]:
-        logger.debug("Clean code!")
+        
         cmd = [
-            self.mlir_opt_path,
-            "-split-input-file"
+            self.mlir_opt_path
         ]
         
         process = subprocess.Popen(
@@ -152,6 +212,7 @@ class MLIRPassExecutionEngine:
             logger.error(f"ERROR: {error}")
             return None
 
+        logger.debug("Clean code finished!")
         return output
 
     def apply_pass(self, mlir_content: str, pass_pipeline: PassPipeline) -> Optional[str]:

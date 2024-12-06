@@ -104,8 +104,6 @@ class LoweringConfig:
         elif self.target_type == "custom":
             if len(self.target_dialects) == 0:
                 logger.error("Target dialects must be setted!")
-            if len(self.illegal_dialects) == 0:
-                logger.error("Illegal dialects must be setted!")
                 
             
         self.output_dir = Path(self.output_dir)

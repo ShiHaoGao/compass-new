@@ -156,7 +156,7 @@ class PostDialectDecisionNode(Node):
         super().__init__(node_type=NodeType.POST_DIALECT)
         self.code_state: MLIRCodeState = code_state
         self.applied_dialect = applied_dialect
-        self.active_passes = list(self.code_state.registry.get_dialect_passes(applied_dialect))
+        self.active_passes = list(self.code_state.registry.get_dialect_passes(applied_dialect)) + self.code_state.registry.get_dialect_passes('global')
         self.agent = Agent()
 
     def __str__(self) -> str:
@@ -193,6 +193,9 @@ class PostDialectDecisionNode(Node):
         if len(self.active_passes) == 0:
             return None
 
+        logger.debug(f"available_passes: {self.code_state.get_available_passes()}")
+        logger.debug(f"active_passes: {self.active_passes}")
+        
         # 在active_passes中随机选择一个pass
         chosen_pass_name = random.choice(self.active_passes)
         

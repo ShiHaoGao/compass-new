@@ -42,8 +42,9 @@ class DynamicLowering:
                 return True
             return False
         elif self.config.target_type == "custom":
+            logger.debug(f"dialects: {dialects}")
             if all(item in dialects for item in self.config.target_dialects) \
-                and self.config.illegal_dialects not in dialects:
+                and all(item not in dialects for item in self.config.illegal_dialects):
                 return True
             else:
                 return False

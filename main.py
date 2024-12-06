@@ -85,7 +85,12 @@ def process_mlir_file(mlir_file: Path, config: LoweringConfig) -> bool:
     lowering = DynamicLowering(config)
     
     # 执行转换
-    result = lowering.lower(str(mlir_file))
+    try:
+        result = lowering.lower(str(mlir_file))
+    except Exception as e:
+        logger.error("Raise error!")
+        logger.error(f"Exception: {e}")
+        result = None
     logger.info("Lowered MLIR:")
     logger.info(result)
     
@@ -103,38 +108,40 @@ def main():
     
 
     # 示例1：测试单个文件
-    single_file = "tests/circt_tests/Conversion/AffineToLoopSchedule/loops.mlir"
-    config = LoweringConfig.for_single_file(
-        max_iterations=1000000,
-        debug_mode=True,
-        save_intermediate_states=True,
-        mlir_opt_path="./tools/circt-opt",
-        third_party_opt_path="./tools/circt-opt",
-        output_dir="custom_output",
-        third_party_config_path="config/circt_config.yaml",
-        core_config_path="config/core_config.yaml",
-        target_type="custom",
-        illegal_dialects=["affine"],
-        target_dialects=["loopschedule"],
-        file_path=single_file,
-    )
-
-    # 示例2：处理目录中的所有文件（递归）
-    # config = LoweringConfig(
+    # single_file = "tests/circt_tests/Conversion/CalyxToFSM/lower-invoke.mlir"
+    # config = LoweringConfig.for_single_file(
     #     max_iterations=1000000,
     #     debug_mode=True,
     #     save_intermediate_states=True,
+    #     mlir_opt_path="./tools/circt-opt",
+    #     third_party_opt_path="./tools/circt-opt",
     #     output_dir="custom_output",
     #     third_party_config_path="config/circt_config.yaml",
     #     core_config_path="config/core_config.yaml",
-    #     target_dialect="sv",
-    #     mlir_opt_path="./tools/circt-opt",
-    #     third_party_opt_path="./tools/circt-opt",
-    #     test_config=TestPathConfig(
-    #         test_path="/home/gaoshihao/learn/python/compass/tests/circt_tests/Conversion/FSMToSV", 
-    #         recursive_search=True
-    #     )
+    #     target_type="custom",
+    #     illegal_dialects=[],
+    #     target_dialects=["fsm"],
+    #     file_path=single_file,
     # )
+
+    # 示例2：处理目录中的所有文件（递归）
+    config = LoweringConfig(
+        max_iterations=1000000,
+        debug_mode=True,
+        save_intermediate_states=True,
+        output_dir="custom_output",
+        core_config_path="config/core_config.yaml",
+        mlir_opt_path="./tools/circt-opt",
+        third_party_config_path="config/circt_config.yaml",
+        third_party_opt_path="./tools/circt-opt",
+        target_type="custom",
+        illegal_dialects=["verif"],
+        target_dialects=["sv"],
+        test_config=TestPathConfig(
+            test_path="tests/circt_tests/Conversion/VerifToSV", 
+            recursive_search=True
+        )
+    )
 
     # 示例3：处理目录中的文件（非递归）
     # config = LoweringConfig(

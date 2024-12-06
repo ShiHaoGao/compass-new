@@ -1,14 +1,18 @@
 dialects:
+  global:
+    description: ""
+    passes:
+      - name: "convert-to-arcs"
+        description: "Outline logic between registers into state transfer arcs"
+        type: MODULE
+        next_pass: null
+
   aig:
     description: "AIG dialect for And-Inverter Graphs"
     passes:
-      - name: "convert-comb-to-aig"
-        description: "Lower Comb ops to AIG ops"
-        type: MODULE
-        next_pass: "convert-aig-to-comb"
       - name: "convert-aig-to-comb"
         description: "Lower AIG ops to Comb ops"
-        type: MODULE
+        type: HWMODULE
         next_pass: null
 
   affine:
@@ -22,38 +26,39 @@ dialects:
   arc:
     description: "Arc dialect for state transfer arcs"
     passes:
-      - name: "convert-to-arcs"
-        description: "Outline logic between registers into state transfer arcs"
-        type: MODULE
-        next_pass: "lower-arc-to-llvm"
       - name: "lower-arc-to-llvm"
         description: "Lower state transfer arc representation to LLVM"
+        type: MODULE
+        next_pass: null
+
+  scf:
+    description: ""
+    passes:
+      - name: "lower-scf-to-calyx"
+        description: "Lower SCF/Standard to Calyx"
         type: MODULE
         next_pass: null
 
   calyx:
     description: "Calyx dialect for hardware synthesis"
     passes:
-      - name: "lower-scf-to-calyx"
-        description: "Lower SCF/Standard to Calyx"
-        type: MODULE
-        next_pass: "lower-calyx-to-fsm"
       - name: "lower-calyx-to-fsm"
         description: "Lower Calyx to FSM"
-        type: FUNC
-        next_pass: "materialize-calyx-to-fsm"
+        type: CALYX_COMPONENTOP
+        next_pass: null
       - name: "materialize-calyx-to-fsm"
         description: "Materialize FSM embedded inside Calyx component"
-        type: FUNC
-        next_pass: "calyx-remove-groups-fsm"
+        type: CALYX_COMPONENTOP
+        next_pass: null
       - name: "calyx-remove-groups-fsm"
         description: "Perform FSM outlining and group removal"
-        type: FUNC
+        type: CALYX_COMPONENTOP
         next_pass: null
-      - name: "lower-loopschedule-to-calyx"
-        description: "Lower LoopSchedule to Calyx"
+      - name: "lower-calyx-to-hw"
+        description: "This pass lowers Calyx to HW."
         type: MODULE
         next_pass: null
+
 
   chirrtl:
     description: "CHIRRTL dialect for Chisel IR transformation"
@@ -74,10 +79,6 @@ dialects:
         description: "Convert combinational ops and constants into arith ops"
         type: MODULE
         next_pass: null
-      - name: "convert-comb-to-aig"
-        description: "Lower Comb ops to AIG ops"
-        type: MODULE
-        next_pass: null
       - name: "convert-comb-to-smt"
         description: "Convert combinational ops and constants to SMT ops"
         type: MODULE
@@ -85,6 +86,10 @@ dialects:
       - name: "lower-comb"
         description: "Lowers the some of the comb ops."
         type: MODULE
+        next_pass: null
+      - name: "convert-comb-to-aig"
+        description: "Lower Comb ops to AIG ops"
+        type: HWMODULE
         next_pass: null
 
   dc:
@@ -110,7 +115,7 @@ dialects:
       - name: "lower-firrtl-to-hw"
         description: "Lower FIRRTL to HW"
         type: MODULE
-        next_pass: "export-verilog"
+        next_pass: null
 
   fsm:
     description: "FSM dialect for finite state machines"
@@ -125,8 +130,8 @@ dialects:
     passes:
       - name: "lower-hw-to-sv"
         description: "Convert HW to SystemVerilog"
-        type: MODULE
-        next_pass: "export-verilog"
+        type: HWMODULE
+        next_pass: null
       - name: "convert-hw-to-llvm"
         description: "Convert HW to LLVM"
         type: MODULE
@@ -135,20 +140,53 @@ dialects:
         description: "Convert HW to SystemC"
         type: MODULE
         next_pass: null
+      - name: "convert-hw-to-btor2"
+        description: "Convert HW to BTOR2"
+        type: MODULE
+      - name: "convert-hw-to-smt"
+        description: "Convert HW ops and constants to SMT ops"
+        type: MODULE
+        next_pass: null
+      - name: "convert-hw-to-systemc"
+        description: "Convert HW to SystemC"
+        next_pass: null
 
   hwarith:
     description: "HWArith dialect for arithmetic operations in hardware"
     passes:
       - name: "lower-hwarith-to-hw"
+        type: MODULE
         description: "Lower HWArith to HW/Comb"
+        next_pass: null
+
+  cf: 
+    description: ""
+    passes:
+      - name: "lower-cf-to-handshake"
+        type: MODULE
+        description: "Lower func and CF into Handshake IR"
+        next_pass: null
+
+  func: 
+    description: ""
+    passes:
+      - name: "lower-cf-to-handshake"
+        type: MODULE
+        description: "Lower func and CF into Handshake IR"
         next_pass: null
 
   handshake:
     description: "Handshake dialect for asynchronous communication"
     passes:
       - name: "lower-handshake-to-hw"
+        type: MODULE
         description: "Lower Handshake to HW"
         next_pass: null
+      - name: "lower-handshake-to-dc"
+        type: MODULE
+        description: "Lower Handshake to DC"
+        next_pass: null
+      
 
   interop:
     description: "Interop dialect for system interoperability"
@@ -161,11 +199,17 @@ dialects:
 
   loopschedule:
     description: "LoopSchedule dialect for scheduling optimizations"
+    passes:
+      - name: "lower-loopschedule-to-calyx"
+        description: "Lower LoopSchedule to Calyx"
+        type: MODULE
+        next_pass: null
 
   ltl:
     description: "LTL dialect for linear temporal logic"
     passes:
       - name: "lower-ltl-to-core"
+        type: HWMODULE
         description: "Convert LTL and Verif to Core"
         next_pass: null
 
@@ -213,33 +257,32 @@ dialects:
         description: "Convert combinational ops and constants to SMT ops"
         type: MODULE
         next_pass: null
-      - name: "convert-hw-to-smt"
-        description: "Convert HW ops and constants to SMT ops"
-        type: MODULE
-        next_pass: null
+      - name: "lower-smt-to-z3-llvm"
+        description: "Lower the SMT dialect to LLVM IR calling the Z3 API"
+
+
 
   sv:
     description: "SV dialect for SystemVerilog constructs"
-    passes:
-      - name: "lower-hw-to-sv"
-        description: "Convert HW constructs to SystemVerilog"
-        type: MODULE
-        next_pass: null
 
   systemc:
     description: "SystemC dialect for SystemC-based designs"
-    passes:
-      - name: "convert-hw-to-systemc"
-        description: "Convert HW to SystemC"
-        next_pass: null
+
 
   verif:
     description: "Verif dialect for verification tasks"
     passes:
+      - name: "lower-ltl-to-core"
+        type: HWMODULE
+        description: "Convert LTL and Verif to Core"
+        next_pass: null
       - name: "lower-verif-to-sv"
         description: "Convert Verif constructs to SystemVerilog"
-        type: MODULE
+        type: HWMODULE
         next_pass: null
+      - name: "convert-verif-to-smt"
+        description: "Convert Verif ops to SMT ops"
+        
 
 
 
