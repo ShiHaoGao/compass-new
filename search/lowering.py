@@ -33,13 +33,23 @@ class DynamicLowering:
         self.config.output_dir.mkdir(parents=True, exist_ok=True)
     
     def is_successful_lowering_to_target(self, mlir_code_state: MLIRCodeState) -> bool:
-        if self.config.target_dialect is None:
+        dialects = mlir_code_state.get_available_dialects()
+        
+        if self.config.target_type == "core":
             return mlir_code_state.available_dialects_are_core_dialects()
-        else:
-            dialects = mlir_code_state.get_available_dialects()
-            if len(dialects) == 1 and self.config.target_dialect in dialects:
+        elif self.config.target_type == "llvm":
+            if len(dialects) == 1 and "llvm" in dialects:
                 return True
             return False
+        elif self.config.target_type == "custom":
+            if all(item in dialects for item in self.config.target_dialects) \
+                and self.config.illegal_dialects not in dialects:
+                return True
+            else:
+                return False
+        else:
+            logger.error("Target type is illegal!")
+
     
     def lower(self, input_file: str) -> Optional[MLIRCodeState]:
         """
