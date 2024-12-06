@@ -71,7 +71,14 @@ prompt_template_extract = ChatPromptTemplate.from_messages(
             "Only extract <<<pass>>> relevant information from the text. "
             "If you do not know the value of an attribute asked to extract, "
             "return null for the attribute's value."
-            "please remember extract pass relevant information, if not pass relevant ,don't show me ",
+            "please remember extract pass relevant information, if not pass relevant ,don't show me "
+            """
+            你的任务是分析我给你的内容，并提取关于 pass 的关键信息，包括：
+            1. pass 的名称和类型（对应 Pass<"..."> 的内容）。
+            2. pass 所属的 dialect 信息（代码中的功能描述（例如 description 或 summary）
+            说明了这个pass可能作用的dialect范围，请你结合description或summary还有pass的名字，
+            推断出pass属于哪个dialect。如果代码中没有明确提到所属 dialect，请标明“未指定”。
+            """,
         ),
         # Please see the how-to about improving performance with
         # reference examples.
@@ -284,7 +291,9 @@ def judge_td_file_is_pass(text):
 
 # 示例使用
 if __name__ == "__main__":
-    td_path_files = read_paths_from_file("/home/liuyang/project/buddy-compass/compass-new/Agent/extract_data/td_file_pathes/HLO_td/hlo_pass_td")  # 替换为实际路径文件
+    td_path_files = read_paths_from_file(
+        "/home/liuyang/project/buddy-compass/compass-new/Agent/extract_data/td_file_pathes/HLO_td/hlo_pass_td"
+    )  # 替换为实际路径文件
 
     for path in td_path_files:
         print("*" * 20)
