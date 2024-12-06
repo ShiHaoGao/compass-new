@@ -1,0 +1,209 @@
+passes:
+- description: Convert TMTensor ops to loops and Linalg ops.
+  dialect: TMTensor
+  name: tm-tensor-to-loops
+  type: func::FuncOp
+- description: Bufferize the TMTensor dialect
+  dialect: TMTensor
+  name: tm-tensor-bufferize
+  type: func::FuncOp
+- description: Convert recognized Torch ops to Std ops
+  dialect: torch
+  name: convert-torch-to-arith
+  type: func::FuncOp
+- description: Convert recognized Torch ops to SCF ops
+  dialect: torch
+  name: convert-torch-to-scf
+  type: func::FuncOp
+- description: Convert ATen ops to linalg ops. This pass's main responsibility is
+    to bridge the world between ops that safely terminate the program in case of operand
+    shape mismatches (ATen) and ops where such mismatches are undefined behavior (linalg).
+    To model the termination of the program for implementing error guards, we use
+    the `cf.assert` op.
+  dialect: torch
+  name: convert-torch-to-linalg
+  type: func::FuncOp
+- description: Converts any `Torch` operators that were expressible as `Tensor` dialect
+    operations.
+  dialect: torch
+  name: convert-torch-to-tensor
+  type: func::FuncOp
+- description: This pass assumes that TOSA ops are responsible for emitting error
+    guards in case of shape mismatches.
+  dialect: torch
+  name: convert-torch-to-tosa
+  type: func::FuncOp
+- description: Convert ATen ops to tmtensor/linalg ops. This pass is similar to the
+    TorchToLinalg pass; the difference is that this pass also makes use of TMTensor
+    Dialect, which the former one doesn't.
+  dialect: torch
+  name: convert-torch-to-tmtensor
+  type: func::FuncOp
+- description: Convert TorchConversion ops to mlprogram ops.
+  dialect: torch
+  name: convert-torch-conversion-to-mlprogram
+  type: ModuleOp
+- description: Convert Torch ops to Stablehlo ops.
+  dialect: torch
+  name: convert-torch-to-stablehlo
+  type: func::FuncOp
+- description: Converts ONNX custom ops in the torch dialect to native torch ops
+  dialect: torch
+  name: convert-torch-onnx-to-torch
+  type: func::FuncOp
+- description: Converts TorchScript object graphs to a globalized form
+  dialect: torch
+  name: torch-globalize-object-graph
+  type: ModuleOp
+- description: Lowering in preparation for globalizing
+  dialect: torch
+  name: torch-prepare-for-globalize-object-graph
+  type: ModuleOp
+- description: Adjust the calling conventions of functions
+  dialect: torch
+  name: torch-adjust-calling-conventions
+  type: ModuleOp
+- description: Inlines torch.global_slot ops.
+  dialect: torch
+  name: torch-inline-global-slots
+  type: ModuleOp
+- description: Reduces variants of ops to a smaller set of ops.
+  dialect: torch
+  name: torch-reduce-op-variants
+  type: func::FuncOp
+- description: Use value-semantic tensors where possible.
+  dialect: torch
+  name: torch-maximize-value-semantics
+  type: func::FuncOp
+- description: Refine public return
+  dialect: torch
+  name: torch-refine-public-return
+  type: ModuleOp
+- description: Decompose complicated torch operations
+  dialect: torch
+  name: torch-decompose-complex-ops
+  type: func::FuncOp
+- description: Takes common shape computation operations and scalarizes them.
+  dialect: torch
+  name: torch-scalarize-shapes
+  type: func::FuncOp
+- description: Recompose torch operations that have been decomposed by TorchScript
+  dialect: torch
+  name: torch-recompose-complex-ops
+  type: func::FuncOp
+- description: 'QDQ: Fuse recognized QDQ op sequences.'
+  dialect: torch
+  name: torch-fuse-quantized-ops
+  type: func::FuncOp
+- description: Match quantized operations that occur in different namespace.
+  dialect: torch
+  name: torch-match-quantized-custom-ops
+  type: func::FuncOp
+- description: Reify shape calculations.
+  dialect: torch
+  name: torch-reify-shape-calculations
+  type: ModuleOp
+- description: Simplify reified shape calculations.
+  dialect: torch
+  name: torch-simplify-shape-calculations
+  type: func::FuncOp
+- description: Reify dtype calculations.
+  dialect: torch
+  name: torch-reify-dtype-calculations
+  type: ModuleOp
+- description: Simplify reified dtype calculations.
+  dialect: torch
+  name: torch-simplify-dtype-calculations
+  type: func::FuncOp
+- description: Drop reified abstract interpretation calculations.
+  dialect: torch
+  name: torch-drop-abstract-interp-calculations
+  type: func::FuncOp
+- description: Erase the `torch.global_slot.module_initializer` op.
+  dialect: torch
+  name: torch-erase-module-initializer
+  type: ModuleOp
+- description: Perform simplifications until the backend contract is satisfied.
+  dialect: torch
+  name: torch-lower-to-backend-contract
+  type: ModuleOp
+- description: Check that program satisfies backend contract.
+  dialect: torch
+  name: torch-verify-backend-contract-no-decompositions
+  type: ModuleOp
+- description: Ensure that every Reduction.cpp op has a constant reduction axis.
+  dialect: torch
+  name: torch-restructure-non-constant-axes
+  type: func::FuncOp
+- description: Inlines torch.global_slot ops when it is safe to do so.
+  dialect: torch
+  name: torch-inline-global-slots
+  type: ModuleOp
+- description: Partial type conversion pass analogous in scope to the upstream `func-bufferize`
+    pass.
+  dialect: torch
+  name: torch-func-backend-type-conversion-for-stablehlo
+  type: ModuleOp
+- description: Partial type conversion pass analogous in scope to the upstream `func-bufferize`
+    pass.
+  dialect: torch
+  name: torch-func-backend-type-conversion
+  type: ModuleOp
+- description: Partial type conversion pass analogous in scope to the upstream `func-bufferize`
+    pass.
+  dialect: torch
+  name: torch-func-backend-type-conversion-for-stablehlo
+  type: ModuleOp
+- description: Analogous in scope to the upstream `finalizing-bufferize` pass.
+  dialect: torch
+  name: torch-finalizing-backend-type-conversion
+  type: mlir::FunctionOpInterface
+- description: Analogous in scope to the upstream `finalizing-bufferize` pass.
+  dialect: torch
+  name: torch-finalizing-backend-type-conversion-for-stablehlo
+  type: mlir::FunctionOpInterface
+- description: Verifies conformity to the linalg-on-tensors backend contract.
+  dialect: torch
+  name: torch-verify-linalg-on-tensors-backend-contract
+  type: ModuleOp
+- description: Verifies conformity to the linalg-on-tensors backend contract.
+  dialect: torch
+  name: torch-verify-tosa-backend-contract
+  type: ModuleOp
+- description: Verifies conformity to the stablehlo backend contract.
+  dialect: torch
+  name: torch-verify-stablehlo-backend-contract
+  type: ModuleOp
+- description: Unpack quantized int4 tensor from int8 container.
+  dialect: torch
+  name: torch-unpack-quant-tensor
+  type: mlir::FunctionOpInterface
+- description: Convert torch custom quant op to linalg.
+  dialect: torch
+  name: torch-convert-custom-quant-op
+  type: mlir::FunctionOpInterface
+
+- description: Munge calling conventions for calling via ExecutionEngine
+  dialect: torch
+  name: refback-munge-calling-conventions
+  type: ModuleOp
+- description: Bufferize the MLProgram dialect ops
+  dialect: torch
+  name: refback-mlprogram-bufferize
+  type: ModuleOp
+- description: Expand ops into more primitive ops before LLVM lowering.
+  dialect: torch
+  name: refback-expand-ops-for-llvm
+  type: func::FuncOp
+- description: Munge memref.copy to linalg.copy
+  dialect: torch
+  name: refback-munge-memref-copy
+  type: func::FuncOp
+- description: Convert tensor.concat to other tensor ops
+  dialect: torch
+  name: refback-generalize-tensor-concat
+  type: func::FuncOp
+- description: Convert tensor.pad to linalg ops
+  dialect: torch
+  name: refback-generalize-tensor-pad
+  type: func::FuncOp

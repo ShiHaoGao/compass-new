@@ -1,0 +1,9 @@
+dialects:
+- dialect_name: tm_tensor
+  namespace_name: ::mlir::torch::TMTensor
+dialects:
+- dialect_name: torch
+  namespace_name: ::mlir::torch::Torch
+dialects:
+- dialect_name: torch_c
+  namespace_name: ::mlir::torch::TorchConversion

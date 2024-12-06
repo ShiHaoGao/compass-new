@@ -1,0 +1,2050 @@
+********************
+/home/liuyang/Experiments/MLIR-experiments/mlir-related-projects/torch-mlir/include/torch-mlir-dialects/Dialect/TMTensor/IR/ScalarLoopOpInterface.td
+//===-------------------------------------------------------*- tablegen -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Also available under a BSD-style license. See LICENSE.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef TORCH_MLIR_DIALECT_TMTENSOR_SCALARLOOPOPINTERFACE
+#define TORCH_MLIR_DIALECT_TMTENSOR_SCALARLOOPOPINTERFACE
+
+include "mlir/IR/OpBase.td"
+
+def ScalarLoopOpInterface : OpInterface<"ScalarLoopOpInterface"> {
+  let description = [{
+    Interface for allowing operations to expose information needed to
+    lower it to for loops
+  }];
+  let cppNamespace = "::mlir::torch::TMTensor";
+  let methods = [
+      InterfaceMethod<
+        /*desc=*/[{
+          Returns the destination operands. For op with `memref`
+          operands, this is the result buffers. For op with `tensor`
+          operands, this is the operands that contain the initial
+          value for the result. These are "tied" to the result
+          buffers. For example, for a `LinalgOp`/`TMTensor` ops, it
+          is the `outs` parameters. For `tensor.insert_slice`, it is
+          the `dest` parameter.
+        }],
+        /*retType=*/"SmallVector<Value>",
+        /*methodName=*/"getDestinationOperands",
+        /*args=*/(ins "OpBuilder &":$b),
+        /*methodBody=*/"",
+        /*defaultImplementation=*/"return ValueRange{};"
+      >,
+      InterfaceMethod<
+        /*desc=*/[{
+          Returns a list of `IteratorType`s that describe the number of
+          loops and the iterator types of the operation. The list is
+          expected to use
+          `utils::IteratorType::parallel`/`utils::IteratorType::reduction`
+          from MLIR Structured Op Utils.
+        }],
+        /*retType=*/"SmallVector<utils::IteratorType>",
+        /*methodName=*/"getLoopIteratorTypes"
+      >,
+      InterfaceMethod<
+        /*desc=*/[{
+          Returns a list of ranges that describe the loop bounds and
+          step for the loops of the operation.
+        }],
+        /*retTy=*/"SmallVector<Range>",
+        /*methodName=*/"getIterationDomain",
+        /*args=*/(ins "OpBuilder &":$b)
+      >,
+      InterfaceMethod<
+        /*desc=*/[{
+          Generates the loop body implementation. Assume that all the parallel
+          loops and reduction loops are created and the insertion point of the
+          build is set to the innermost of the loop. This method implements the
+          loop body IRs.
+        }],
+        /*retType=*/"LogicalResult",
+        /*methodName=*/"generateScalarImplementation",
+        /*args=*/(ins
+            "OpBuilder &":$b,
+            "Location ":$loc,
+            "ValueRange ":$ivs),
+        /*methodBody=*/"",
+        /*defaultImplementation=*/[{
+          return failure();
+        }]
+      >
+  ];
+}
+
+#endif  // TORCH_MLIR_DIALECT_TMTENSOR_SCALARLOOPOPINTERFACES
+
+********************
+/home/liuyang/Experiments/MLIR-experiments/mlir-related-projects/torch-mlir/include/torch-mlir-dialects/Dialect/TMTensor/IR/TMTensorBase.td
+//===-------------------------------------------------------*- tablegen -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Also available under a BSD-style license. See LICENSE.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef TORCH_MLIR_DIALECT_TMTENSOR_BASE
+#define TORCH_MLIR_DIALECT_TMTENSOR_BASE
+
+include "mlir/IR/OpBase.td"
+
+//===----------------------------------------------------------------------===//
+// Dialect definition
+//===----------------------------------------------------------------------===//
+
+def TMTensor_Dialect : Dialect {
+  let name = "tm_tensor";
+  let cppNamespace = "::mlir::torch::TMTensor";
+  let description = [{
+    The tm_tensor (tm = torch-mlir) dialect is a temporary staging ground in
+    the torch-mlir project for a set of widely-accepted tensor compute
+    operations that are not well-served by existing representations in MLIR
+    upstream. These ops are currently heavily inspired by the linalg_ext
+    dialect (which itself is heavily inspired by the structured ops of the
+    linalg dialect). But while linalg_ext is meant to power specific codegen
+    transformations, the tm_tensor dialect is a much more pure "interface
+    dialect" agnostic to any particular set of transformations applied to
+    the operations. We simply require a way to name the specified operations
+    for interchange between projects, without taking strong opinions on the
+    mechanics of transformations.
+
+    The dialect does include interfaces to generate scalar reference code for
+    the operations, which simultaneously provides a precise definition of their
+    semantics, and aids in producing executable reference implementations of
+    the operations.
+
+    The goal of this dialect is to eventually either be upstreamed or to be
+    subsumed by functionality included by upstream MLIR. It should also be kept
+    consistent with the linalg_ext dialect unless there is a good reason not
+    to.
+  }];
+  let hasCanonicalizer = 1;
+}
+
+//===----------------------------------------------------------------------===//
+// Type definitions
+//===----------------------------------------------------------------------===//
+
+class RankedTensorOrMemRefOf<list<Type> allowedTypes> :
+  ShapedContainerType<allowedTypes,
+      Or<[IsMemRefTypePred, And<[IsTensorTypePred, HasRankPred]>]>,
+  "ranked tensor or memref", "::mlir::ShapedType">;
+
+def AnyRankedTensorOrMemRefType : RankedTensorOrMemRefOf<[AnyType]>;
+
+#endif // TORCH_MLIR_DIALECT_TMTENSOR_BASE
+
+********************
+/home/liuyang/Experiments/MLIR-experiments/mlir-related-projects/torch-mlir/include/torch-mlir-dialects/Dialect/TMTensor/IR/TMTensorInterfaces.td
+//===-------------------------------------------------------*- tablegen -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Also available under a BSD-style license. See LICENSE.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef TORCH_MLIR_DIALECT_TMTENSOR_INTERFACES
+#define TORCH_MLIR_DIALECT_TMTENSOR_INTERFACES
+
+include "torch-mlir-dialects/Dialect/TMTensor/IR/TMTensorBase.td"
+
+// The interface is a subset of LinalgStructuredInterface.
+def TMTensorInterface : OpInterface<"TMTensorOp"> {
+  let methods = [
+    //===------------------------------------------------------------------===//
+    // Num input/output arguments handling.
+    //===------------------------------------------------------------------===//
+    // `inputs` must be defined by each op that wants to implement the
+    // LinalgStructuredInterface.
+    InterfaceMethod<
+      /*desc=*/[{
+        Return the input shape operands.
+      }],
+      /*retTy=*/"ValueRange",
+      /*methodName=*/"getInputs",
+      /*args=*/(ins)
+    >,
+    // These special methods rely on `inputs` and `outputs` being defined by
+    // each op that wants to implement the LinalgStructuredInterface.
+    InterfaceMethod<
+      /*desc=*/[{
+        Return the number of inputs.
+      }],
+      /*retTy=*/"int64_t",
+      /*methodName=*/"getNumInputs",
+      /*args=*/(ins),
+      /*methodBody=*/"",
+      /*defaultImplementation=*/[{
+        return $_op.getInputs().size();
+      }]
+    >,
+    // `outputs` must be defined by each op that wants to implement the
+    // LinalgStructuredInterface.
+    InterfaceMethod<
+      /*desc=*/[{
+        Return the output shape operands.
+      }],
+      /*retTy=*/"ValueRange",
+      /*methodName=*/"getOutputs",
+      /*args=*/(ins)
+    >,
+    InterfaceMethod<
+      /*desc=*/[{
+        Return the number of outputs.
+      }],
+      /*retTy=*/"int64_t",
+      /*methodName=*/"getNumOutputs",
+      /*args=*/(ins),
+      /*methodBody=*/"",
+      /*defaultImplementation=*/[{
+        return $_op.getOutputs().size();
+      }]
+    >,
+    InterfaceMethod<
+      /*desc=*/[{
+        Return the number of inputs and outputs.
+      }],
+      /*retTy=*/"int64_t",
+      /*methodName=*/"getNumInputsAndOutputs",
+      /*args=*/(ins),
+      /*methodBody=*/"",
+      /*defaultImplementation=*/[{
+        return getNumInputs() + getNumOutputs();
+      }]
+    >,
+    //===------------------------------------------------------------------===//
+    // Input operands handling.
+    //===------------------------------------------------------------------===//
+    InterfaceMethod<
+      /*desc=*/[{
+        Return the input operands.
+      }],
+      /*retTy=*/"OpOperandVector",
+      /*methodName=*/"getInputOperands",
+      /*args=*/(ins),
+      /*methodBody=*/"",
+      /*defaultImplementation=*/[{
+        int64_t numInputs = getNumInputs();
+        OpOperandVector result;
+        result.reserve(numInputs);
+        llvm::transform(
+          this->getOperation()->getOpOperands().take_front(numInputs),
+          std::back_inserter(result),
+          [](OpOperand &opOperand) { return &opOperand; });
+        return result;
+      }]
+    >,
+    InterfaceMethod<
+      /*desc=*/[{
+        Return the `i`-th input operand.
+      }],
+      /*retTy=*/"OpOperand*",
+      /*methodName=*/"getInputOperand",
+      /*args=*/(ins "int64_t":$i),
+      /*methodBody=*/"",
+      /*defaultImplementation=*/[{
+        assert(i >= 0 && i < getNumInputs());
+        return &this->getOperation()->getOpOperand(i);
+      }]
+    >,
+    InterfaceMethod<
+      /*desc=*/[{
+        Return the subset of input operands that are of buffer type.
+      }],
+      /*retTy=*/"OpOperandVector",
+      /*methodName=*/"getInputBufferOperands",
+      /*args=*/(ins),
+      /*methodBody=*/"",
+      /*defaultImplementation=*/[{
+        OpOperandVector result;
+        result.reserve(getNumInputs());
+        llvm::copy_if(getInputOperands(),
+          std::back_inserter(result),
+          [](OpOperand *opOperand) {
+            return isa<MemRefType>(opOperand->get().getType());
+          });
+        return result;
+      }]
+    >,
+    InterfaceMethod<
+      /*desc=*/[{
+        Return the subset of input operands that are of tensor type.
+      }],
+      /*retTy=*/"OpOperandVector",
+      /*methodName=*/"getInputTensorOperands",
+      /*args=*/(ins),
+      /*methodBody=*/"",
+      /*defaultImplementation=*/[{
+        OpOperandVector result;
+        result.reserve(getNumInputs());
+        llvm::copy_if(getInputOperands(),
+          std::back_inserter(result),
+          [](OpOperand *opOperand) {
+            return isa<RankedTensorType>(opOperand->get().getType());
+          });
+        return result;
+      }]
+    >,
+    //===------------------------------------------------------------------===//
+    // Output operands handling.
+    //===------------------------------------------------------------------===//
+    InterfaceMethod<
+      /*desc=*/[{
+        Return the output operands.
+      }],
+      /*retTy=*/"OpOperandVector",
+      /*methodName=*/"getOutputOperands",
+      /*args=*/(ins),
+      /*methodBody=*/"",
+      /*defaultImplementation=*/[{
+        int64_t numOutputs = getNumOutputs();
+        OpOperandVector result;
+        result.reserve(numOutputs);
+        llvm::transform(
+          this->getOperation()->getOpOperands()
+            .drop_front(getNumInputs())
+            .take_front(numOutputs),
+          std::back_inserter(result),
+          [](OpOperand &opOperand) { return &opOperand; });
+        return result;
+      }]
+    >,
+    InterfaceMethod<
+      /*desc=*/[{
+        Return the `i`-th output operand.
+      }],
+      /*retTy=*/"OpOperand*",
+      /*methodName=*/"getOutputOperand",
+      /*args=*/(ins "int64_t":$i),
+      /*methodBody=*/"",
+      /*defaultImplementation=*/[{
+        assert(i >= 0 && i < getNumOutputs());
+        return &this->getOperation()->getOpOperand(getNumInputs() + i);
+      }]
+    >,
+    InterfaceMethod<
+      /*desc=*/[{
+        Return the subset of output operands that are of buffer type.
+      }],
+      /*retTy=*/"OpOperandVector",
+      /*methodName=*/"getOutputBufferOperands",
+      /*args=*/(ins),
+      /*methodBody=*/"",
+      /*defaultImplementation=*/[{
+        OpOperandVector result;
+        result.reserve(getNumOutputs());
+        llvm::copy_if(getOutputOperands(),
+
+********************
+/home/liuyang/Experiments/MLIR-experiments/mlir-related-projects/torch-mlir/include/torch-mlir-dialects/Dialect/TMTensor/IR/TMTensorOps.td
+//===-------------------------------------------------------*- tablegen -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Also available under a BSD-style license. See LICENSE.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef TORCH_MLIR_DIALECT_TMTENSOR_OPS
+#define TORCH_MLIR_DIALECT_TMTENSOR_OPS
+
+include "torch-mlir-dialects/Dialect/TMTensor/IR/TMTensorBase.td"
+include "torch-mlir-dialects/Dialect/TMTensor/IR/TMTensorInterfaces.td"
+include "torch-mlir-dialects/Dialect/TMTensor/IR/ScalarLoopOpInterface.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
+include "mlir/Interfaces/ControlFlowInterfaces.td"
+
+//===----------------------------------------------------------------------===//
+// Base class.
+//===----------------------------------------------------------------------===//
+
+class TMTensor_PureOp<string mnemonic, list<Trait> traits = []> :
+    Op<TMTensor_Dialect, mnemonic, traits> {
+}
+
+class TMTensor_Op<string mnemonic, list<Trait> traits = []> :
+    TMTensor_PureOp<mnemonic, !listconcat(traits,
+        [AttrSizedOperandSegments,
+         DeclareOpInterfaceMethods<MemoryEffectsOpInterface>,
+         TMTensorInterface,
+         SingleBlockImplicitTerminator<"::mlir::torch::TMTensor::YieldOp">
+  ])> {
+  let hasVerifier = 1;
+  code extraTMTensorOpClassDeclaration = [{
+    SmallVector<Value> getDestinationOperands(OpBuilder &b) {
+      SmallVector<Value> dest(getOutputs().begin(), getOutputs().end());
+      return dest;
+    }
+  }];
+}
+
+//===----------------------------------------------------------------------===//
+// Non-structured ops
+//===----------------------------------------------------------------------===//
+
+def TMTensor_ScanOp : TMTensor_Op<"scan",
+    [DeclareOpInterfaceMethods<TMTensorInterface,
+        ["payloadUsesValueFromOperand"]>,
+    DeclareOpInterfaceMethods<ScalarLoopOpInterface,
+        ["generateScalarImplementation"]>]> {
+  let summary = "Scan operator";
+  let description = [{
+    Computes the inclusive/exclusive scan along a given dimension.
+  }];
+
+  let arguments = (ins Variadic<AnyShaped>:$inputs,
+                       Variadic<AnyShaped>:$outputs,
+                       I64Attr:$dimension,
+                       BoolAttr:$inclusive
+  );
+
+  let builders = [
+    OpBuilder<(ins "ValueRange":$inputs, "ValueRange":$outputs,
+      CArg<"int64_t", "0">:$dimension, CArg<"bool", "true">:$inclusive)>
+  ];
+
+  let results = (outs Variadic<AnyRankedTensor>:$results);
+  let regions = (region AnyRegion:$region);
+  let hasFolder = 1;
+  let assemblyFormat = [{
+    `dimension` `(` $dimension `)`
+    `inclusive` `(` $inclusive `)`
+    attr-dict
+    `ins` `(` $inputs `:` type($inputs) `)`
+    `outs` `(` $outputs `:` type($outputs) `)`
+    $region (`->` type($results)^)?
+  }];
+
+  let extraClassDeclaration = extraTMTensorOpClassDeclaration # [{
+    Value input() {
+      return getInputOperand(0)->get();
+    }
+    Value accumulator() {
+      return getOutputOperand(1)->get();
+    }
+    Value output() {
+      return getOutputOperand(0)->get();
+    }
+    ShapedType getOperandType() {
+      return cast<ShapedType>(input().getType());
+    }
+    int64_t getOperandRank() {
+      return getOperandType().getRank();
+    }
+  }];
+}
+
+def TMTensor_ScatterOp : TMTensor_Op<"scatter",
+    [DeclareOpInterfaceMethods<TMTensorInterface,
+        ["payloadUsesValueFromOperand"]>,
+    DeclareOpInterfaceMethods<ScalarLoopOpInterface,
+        ["generateScalarImplementation"]>]> {
+  let summary = "Scatter operator";
+  let description = [{
+    Based on XLA operation semantics, takes two `inputs` (`update` and
+    `indices`) and `outputs` value (`original`). The operation updates
+    the value at the slices specified by `indices` by combining the
+    current value with the value in `updates` using the computation
+    specified in `region`. The `region` specifies a binary operation
+    of signature (T, T) -> T, where `T` is the element-type of
+    `updates` (and `original`). The first argument correspond the
+    value to be updated (i.e. from `updates`), and the second the
+    current value (i.e. value from `original`).
+
+    The `indices` is a 2D tensor/memref type. The first dim is the number of
+    updates, and the second dim is index depth. The index depth should always be
+    static.
+
+    The first dim of `updates` and `indices` is identical, since they represent
+    the number of updates.
+
+    The rank of the `original`/`result` is at least
+    `index_depth + rank(%updates) - 1`. The first `index_depth` indices are
+    derived from `indices` and the shape of update value has the last
+    rank(%original) - index_depth values match %(originals) last dimensions,
+    with the previous dims extending from the index offsets.
+
+    The unique_indices attribute carries the information whether all the indices
+    are unique. If there are repeated indices, the first iteration loop will be
+    marked as reduction.
+
+    The shapes definition follows tensorflow operations execept that it force
+    batch dims to be 1D. See more information in
+      https://www.tensorflow.org/api_docs/python/tf/tensor_scatter_nd_update
+  }];
+  let arguments = (ins
+      Variadic<AnyRankedTensorOrMemRefType>:$inputs,
+      Variadic<AnyRankedTensorOrMemRefType>:$outputs,
+      DenseI64ArrayAttr:$dimension_map,
+      DefaultValuedAttr<BoolAttr, "true">:$unique_indices
+  );
+  let results = (outs Variadic<AnyRankedTensor>:$results);
+  let regions = (region AnyRegion:$region);
+  let assemblyFormat = [{
+    attr-dict `unique_indices` `(` $unique_indices `)`
+    (`ins` `(` $inputs^ `:` type($inputs) `)`)?
+    `outs` `(` $outputs `:` type($outputs) `)`
+    $region (`->` type($results)^)?
+  }];
+  let extraClassDeclaration = extraTMTensorOpClassDeclaration # [{
+
+    int64_t getIndexDepth() {
+      return cast<ShapedType>(getInputOperand(1)
+          ->get()
+          .getType()
+          )
+          .getShape()
+          .back();
+    }
+
+    Value updates() {
+      return getInputOperand(0)->get();
+    }
+
+    ShapedType getUpdateType() {
+      return cast<ShapedType>(updates().getType());
+    }
+
+    Value indices() {
+      return getInputOperand(1)->get();
+    }
+
+    ShapedType getIndicesType() {
+      return cast<ShapedType>(indices().getType());
+    }
+
+    Value original() {
+      return getOutputOperand(0)->get();
+    }
+
+    ShapedType getOriginalType() {
+      return cast<ShapedType>(original().getType());
+    }
+
+    int64_t getUpdateSliceRank() {
+      return cast<ShapedType>(updates().getType()).getRank() - 1;
+    }
+
+    bool isScalarUpdate() {
+      return getUpdateSliceRank() == 0;
+    }
+  }];
+}
+
+def TMTensor_SortOp : TMTensor_Op<"sort",
+    [DeclareOpInterfaceMethods<TMTensorInterface,
+        ["payloadUsesValueFromOperand"]>,
+    DeclareOpInterfaceMethods<ScalarLoopOpInterface,
+        ["generateScalarImplementation"]>]> {
+
+********************
+/home/liuyang/Experiments/MLIR-experiments/mlir-related-projects/torch-mlir/include/torch-mlir-dialects/Dialect/TMTensor/Transforms/Passes.td
+//===-------------------------------------------------------*- tablegen -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Also available under a BSD-style license. See LICENSE.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef TORCH_MLIR_DIALECT_TMTENSOR_PASSES
+#define TORCH_MLIR_DIALECT_TMTENSOR_PASSES
+
+include "mlir/Pass/PassBase.td"
+
+def TMTensorToLoops :
+    Pass<"tm-tensor-to-loops", "func::FuncOp"> {
+  let summary = "Convert TMTensor ops to loops and Linalg ops.";
+  let constructor = "mlir::torch::TMTensor::createTMTensorToLoopsPass()";
+}
+
+def TMTensorBufferize : Pass<"tm-tensor-bufferize", "func::FuncOp"> {
+  let summary = "Bufferize the TMTensor dialect";
+  let constructor = "mlir::torch::TMTensor::createTMTensorBufferizePass()";
+}
+
+#endif  // TORCH_MLIR_DIALECT_TMTENSOR_PASSES
+
+********************
+/home/liuyang/Experiments/MLIR-experiments/mlir-related-projects/torch-mlir/include/torch-mlir/Conversion/Passes.td
+//===-- Passes.td - Pass definition file -------------------*- tablegen -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Also available under a BSD-style license. See LICENSE.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef TORCHMLIR_CONVERSION_PASSES
+#define TORCHMLIR_CONVERSION_PASSES
+
+include "mlir/Pass/PassBase.td"
+
+//===----------------------------------------------------------------------===//
+// Torch conversions
+//===----------------------------------------------------------------------===//
+
+def ConvertTorchToArith : Pass<"convert-torch-to-arith", "func::FuncOp"> {
+  let summary = "Convert recognized Torch ops to Std ops";
+  let constructor = "mlir::torch::createConvertTorchToArithPass()";
+}
+
+def ConvertTorchToSCF: Pass<"convert-torch-to-scf", "func::FuncOp"> {
+  let summary = "Convert recognized Torch ops to SCF ops";
+  let constructor = "mlir::torch::createConvertTorchToSCFPass()";
+}
+
+def ConvertTorchToLinalg : Pass<"convert-torch-to-linalg", "func::FuncOp"> {
+  let summary = "Convert recognized Torch ops to Linalg ops";
+  let description = [{
+    Convert ATen ops to linalg ops.
+
+    This pass's main responsibility is to bridge the world between ops
+    that safely terminate the program in case of operand shape mismatches
+    (ATen) and ops where such mismatches are undefined behavior (linalg).
+
+    To model the termination of the program for implementing error guards,
+    we use the `cf.assert` op.
+    This is a design decision that is at variance from other passes in the
+    ecosystem, which use the
+    `shape` dialect's witness system (`shape.cstr_*` family of ops feeding into
+    `shape.assuming` regions). This is a change in design decisions
+    from those passes (which the authors of this pass have contributed to).
+    The reasons for this change are heuristic, but boil down to:
+    1. The modeling of `shape.assuming` is odd, as it uses a region, which is
+       not a good fit for modeling error guards. Regions mark a "start" and an
+       "end" (which is their nesting property). But
+       modeling assertions in the program doesn't fit into that. For assertions,
+       only the "start" matters (once tested, a predicate remains true "forever"
+       -- it doesn't end at the "yield" of the region).
+       Thus, having regions places arbitrary "end"s that just add IR structure
+       that has no semantic value for modeling this problem! (and to make things
+       worse the "end"s, which we don't need, are what require "yielding"
+       values, which interrupts use-def chains). Consider the different
+       structural properties of regions:
+       a. IsolatedFromAbove region:
+          - "start" interrupts use-def chains,
+          - "end" interrupts use-def chains
+          - structurally protects from intra-block upward and downward
+            code motion
+       b. Capturing region (like `shape.assuming`):
+          - "start" does not interrupt use-def chains,
+          - "end" interrupts use-def chains
+          - structurally protects from intra-block upward and downward
+            code motion
+       c. What we "ideally" want:
+          - "start" interrupts use-def chains (can be pruned though)
+          - no "end" IR structure!
+          - structurally protects from intra-block upward code motion
+            (but not downward code motion!)
+          - Observation: We probably can't get all of this, but overall this
+            problem is much better suited for a "MemorySSA"-like
+            abstraction, call it "EffectSSA" which is constructed on-demand
+            based on MLIR's effect modeling system (rather than
+            `shape.assuming`, which only covers the effects the IR creator
+            encoded -- with witnesses/`shape.assuming` -- it is easy to forget
+            to handle effects other than those encoded in the
+            witness structure).
+    2. The presence of `shape.assuming` regions tends to create highly nested
+       IR structures, which don't interoperate well with any other IR
+       structures, and creates very bulky IR (and IR creation code). In general
+       if we are going to do anything with anything (e.g. canonicalize) we
+       end up needing need to either:
+       a. Flatten the `shape.assuming` IR (defeating the purpose of having
+          it).
+       b. Do some sort of shape.assuming "region merging".
+       c. Have special patterns that handle a subset of special cases (looking
+          through "yields" and such) and don't generalize.
+    3. Witnesses tend to encourage non-scalable peephole transformations, which
+       tend to make analyses/transformations non-robust to the presence of
+       control flow and side effecting ops (easy to forget to handle side
+       effects other than those modeled by the witness system).
+    4. All this code operates on ranked tensors, for which using individual
+       SSA values for sizes (rather than a "shape type") seems to
+       work really well at this level of abstraction based on prior experience
+       in other projects. (unranked code tends to benefit from having a discrete
+       "shape type" to model shapes).
+
+    We will see if we end up needing something like `shape.assuming`, but for
+    now, it seems likely we can do something simpler and just bypass it. The
+    design of having an EffectSSA that is constructed on-demand seems very
+    compelling for modeling effects more broadly.
+  }];
+  let constructor = "mlir::torch::createConvertTorchToLinalgPass()";
+}
+
+def ConvertTorchToTensor : Pass<"convert-torch-to-tensor", "func::FuncOp"> {
+  let summary = "Convert Torch ops to the Tensor dialect";
+  let description = [{
+    Converts any `Torch` operators that were expressible as `Tensor` dialect
+    operations.
+  }];
+  let constructor = "mlir::torch::createConvertTorchToTensorPass()";
+}
+
+def ConvertTorchToTosa : Pass<"convert-torch-to-tosa", "func::FuncOp"> {
+  let summary = "Convert Torch ops to TOSA ops";
+  let description = [{
+    This pass assumes that TOSA ops are responsible for emitting error
+    guards in case of shape mismatches.
+  }];
+  let constructor = "mlir::torch::createConvertTorchToTosaPass()";
+}
+
+def ConvertTorchToTMTensor : Pass<"convert-torch-to-tmtensor", "func::FuncOp"> {
+  let summary = "Convert recognized Torch ops to TMTensor/Linalg ops";
+  let description = [{
+    Convert ATen ops to tmtensor/linalg ops.
+
+    This pass is similar to the TorchToLinalg pass; the difference is that this
+    pass also makes use of TMTensor Dialect, which the former one doesn't.
+  }];
+  let constructor = "mlir::torch::createConvertTorchToTMTensorPass()";
+}
+
+def ConvertTorchConversionToMLProgram : Pass<"convert-torch-conversion-to-mlprogram", "ModuleOp"> {
+  let summary = "Convert recognized TorchConversion ops to MLProgram ops";
+  let description = [{
+    Convert TorchConversion ops to mlprogram ops.
+  }];
+  let constructor = "mlir::torch::createConvertTorchConversionToMLProgramPass()";
+}
+
+#ifdef TORCH_MLIR_ENABLE_STABLEHLO
+def ConvertTorchToStablehlo : Pass<"convert-torch-to-stablehlo", "func::FuncOp"> {
+  let summary = "Convert Torch ops to Stablehlo ops";
+  let description = [{
+    Convert Torch ops to Stablehlo ops.
+  }];
+  let constructor = "mlir::torch::createConvertTorchToStablehloPass()";
+
+  // Specify any options.
+  let options = [
+    Option<"enableStaticShape", "enable-static-shape", "bool", /*default=*/"false",
+           "Enable static shape conversion">,
+    // The i64 calculation is much slower than i32 on some devices, such as
+    // Nvidia GPU. One can truncate from i64 to i32 since dimension sizes
+    // are unlikely to exceed the range of i32(4GiB)
+    Option<"enableI32Index", "enable-i32-index", "bool", /*default=*/"false",
+           "Enable truncate index from i64 to i32(unsafely)">,
+  ];
+}
+#endif
+
+#endif // TORCHMLIR_CONVERSION_PASSES
+
+********************
+/home/liuyang/Experiments/MLIR-experiments/mlir-related-projects/torch-mlir/include/torch-mlir/Conversion/TorchOnnxToTorch/Passes.td
+//===-- Passes.td - Pass definition file -------------------*- tablegen -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Also available under a BSD-style license. See LICENSE.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef TORCHMLIR_CONVERSION_TORCHONNX_TO_TORCH_PASSES
+#define TORCHMLIR_CONVERSION_TORCHONNX_TO_TORCH_PASSES
+
+include "mlir/Pass/PassBase.td"
+
+def ConvertTorchOnnxToTorch : Pass<"convert-torch-onnx-to-torch", "func::FuncOp"> {
+    let summary = "Converts ONNX custom ops in the torch dialect to native torch ops";
+    let description = [{
+      Converts equivalent ONNX custom ops to built-in equivalents.
+
+      See the README for a detailed description of how this operates.
+    }];
+
+    let constructor = "mlir::torch::onnx_c::createTorchOnnxToTorchPass()";
+}
+
+#endif  // TORCHMLIR_CONVERSION_TORCHONNX_TO_TORCH_PASSES
+
+********************
+/home/liuyang/Experiments/MLIR-experiments/mlir-related-projects/torch-mlir/include/torch-mlir/Dialect/Torch/IR/GeneratedTorchOps.td
+//===-------------------------------------------------------*- tablegen -*-===//
+//
+// This file is licensed under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Also available under a BSD-style license. See LICENSE.
+//
+// Operation summaries and descriptions were systematically derived from public
+// API docstrings and are licensed accordingly:
+//   https://github.com/pytorch/pytorch/blob/master/LICENSE
+//===----------------------------------------------------------------------===//
+//
+// This file is automatically generated.  Please do not edit.
+// Generated via:
+// ```
+// build_tools/update_torch_ods.sh
+// ```
+//
+//===----------------------------------------------------------------------===//
+
+
+def Torch_AtenHardtanhOp : Torch_Op<"aten.hardtanh", [
+    AllowsTypeRefinement,
+    HasValueSemantics,
+    ReadOnly
+  ]> {
+  let summary = "Generated op for `aten::hardtanh : (Tensor, Scalar, Scalar) -> (Tensor)`";
+  let arguments = (ins
+    AnyTorchTensorType:$self,
+    AnyTorchScalarType:$min_val,
+    AnyTorchScalarType:$max_val
+  );
+  let results = (outs
+    AnyTorchOptionalTensorType:$result
+  );
+  let hasCustomAssemblyFormat = 1;
+  let extraClassDefinition = [{
+    ParseResult AtenHardtanhOp::parse(OpAsmParser &parser, OperationState &result) {
+      return parseDefaultTorchOp(parser, result, 3, 1);
+    }
+    void AtenHardtanhOp::print(OpAsmPrinter &printer) {
+      printDefaultTorchOp(printer, *this, 3, 1);
+    }
+  }];
+}
+
+def Torch_AtenHardtanh_Op : Torch_Op<"aten.hardtanh_", [
+    IsTrailingUnderscoreInplaceVariant,
+    AllowsTypeRefinement
+  ]> {
+  let summary = "Generated op for `aten::hardtanh_ : (Tensor, Scalar, Scalar) -> (Tensor)`";
+  let arguments = (ins
+    Torch_NonValueTensorType:$self,
+    AnyTorchScalarType:$min_val,
+    AnyTorchScalarType:$max_val
+  );
+  let results = (outs
+    AnyTorchOptionalNonValueTensorType:$result
+  );
+  let hasCustomAssemblyFormat = 1;
+  let extraClassDefinition = [{
+    ParseResult AtenHardtanh_Op::parse(OpAsmParser &parser, OperationState &result) {
+      return parseDefaultTorchOp(parser, result, 3, 1);
+    }
+    void AtenHardtanh_Op::print(OpAsmPrinter &printer) {
+      printDefaultTorchOp(printer, *this, 3, 1);
+    }
+  }];
+}
+
+def Torch_AtenEluOp : Torch_Op<"aten.elu", [
+    AllowsTypeRefinement,
+    HasValueSemantics,
+    ReadOnly
+  ]> {
+  let summary = "Generated op for `aten::elu : (Tensor, Scalar, Scalar, Scalar) -> (Tensor)`";
+  let arguments = (ins
+    AnyTorchTensorType:$self,
+    AnyTorchScalarType:$alpha,
+    AnyTorchScalarType:$scale,
+    AnyTorchScalarType:$input_scale
+  );
+  let results = (outs
+    AnyTorchOptionalTensorType:$result
+  );
+  let hasCustomAssemblyFormat = 1;
+  let extraClassDefinition = [{
+    ParseResult AtenEluOp::parse(OpAsmParser &parser, OperationState &result) {
+      return parseDefaultTorchOp(parser, result, 4, 1);
+    }
+    void AtenEluOp::print(OpAsmPrinter &printer) {
+      printDefaultTorchOp(printer, *this, 4, 1);
+    }
+  }];
+}
+
+def Torch_AtenElu_Op : Torch_Op<"aten.elu_", [
+    IsTrailingUnderscoreInplaceVariant,
+    AllowsTypeRefinement
+  ]> {
+  let summary = "Generated op for `aten::elu_ : (Tensor, Scalar, Scalar, Scalar) -> (Tensor)`";
+  let arguments = (ins
+    Torch_NonValueTensorType:$self,
+    AnyTorchScalarType:$alpha,
+    AnyTorchScalarType:$scale,
+    AnyTorchScalarType:$input_scale
+  );
+  let results = (outs
+    AnyTorchOptionalNonValueTensorType:$result
+  );
+  let hasCustomAssemblyFormat = 1;
+  let extraClassDefinition = [{
+    ParseResult AtenElu_Op::parse(OpAsmParser &parser, OperationState &result) {
+      return parseDefaultTorchOp(parser, result, 4, 1);
+    }
+    void AtenElu_Op::print(OpAsmPrinter &printer) {
+      printDefaultTorchOp(printer, *this, 4, 1);
+    }
+  }];
+}
+
+def Torch_AtenReluOp : Torch_Op<"aten.relu", [
+    AllowsTypeRefinement,
+    HasValueSemantics,
+    ReadOnly
+  ]> {
+  let summary = "Generated op for `aten::relu : (Tensor) -> (Tensor)`";
+  let arguments = (ins
+    AnyTorchTensorType:$self
+  );
+  let results = (outs
+    AnyTorchOptionalTensorType:$result
+  );
+  let hasCustomAssemblyFormat = 1;
+  let extraClassDefinition = [{
+    ParseResult AtenReluOp::parse(OpAsmParser &parser, OperationState &result) {
+      return parseDefaultTorchOp(parser, result, 1, 1);
+    }
+    void AtenReluOp::print(OpAsmPrinter &printer) {
+      printDefaultTorchOp(printer, *this, 1, 1);
+    }
+  }];
+}
+
+def Torch_AtenRelu_Op : Torch_Op<"aten.relu_", [
+    IsTrailingUnderscoreInplaceVariant,
+    AllowsTypeRefinement
+  ]> {
+  let summary = "Generated op for `aten::relu_ : (Tensor) -> (Tensor)`";
+  let arguments = (ins
+    Torch_NonValueTensorType:$self
+  );
+  let results = (outs
+    AnyTorchOptionalNonValueTensorType:$result
+  );
+  let hasCustomAssemblyFormat = 1;
+  let extraClassDefinition = [{
+    ParseResult AtenRelu_Op::parse(OpAsmParser &parser, OperationState &result) {
+      return parseDefaultTorchOp(parser, result, 1, 1);
+    }
+    void AtenRelu_Op::print(OpAsmPrinter &printer) {
+      printDefaultTorchOp(printer, *this, 1, 1);
+    }
+  }];
+}
+
+def Torch_AtenRelu6Op : Torch_Op<"aten.relu6", [
+    AllowsTypeRefinement,
+    HasValueSemantics,
+    ReadOnly
+  ]> {
+  let summary = "Generated op for `aten::relu6 : (Tensor) -> (Tensor)`";
+  let arguments = (ins
+    AnyTorchTensorType:$self
+  );
+  let results = (outs
+    AnyTorchOptionalTensorType:$result
+  );
+  let hasCustomAssemblyFormat = 1;
+  let extraClassDefinition = [{
+    ParseResult AtenRelu6Op::parse(OpAsmParser &parser, OperationState &result) {
+      return parseDefaultTorchOp(parser, result, 1, 1);
+    }
+    void AtenRelu6Op::print(OpAsmPrinter &printer) {
+      printDefaultTorchOp(printer, *this, 1, 1);
+    }
+  }];
+}
+
+def Torch_AtenRelu6_Op : Torch_Op<"aten.relu6_", [
+    IsTrailingUnderscoreInplaceVariant,
+    AllowsTypeRefinement
+  ]> {
+  let summary = "Generated op for `aten::relu6_ : (Tensor) -> (Tensor)`";
+  let arguments = (ins
+    Torch_NonValueTensorType:$self
+  );
+  let results = (outs
+    AnyTorchOptionalNonValueTensorType:$result
+  );
+
+********************
+/home/liuyang/Experiments/MLIR-experiments/mlir-related-projects/torch-mlir/include/torch-mlir/Dialect/Torch/IR/TorchBase.td
+//===-------------------------------------------------------*- tablegen -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Also available under a BSD-style license. See LICENSE.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef TORCH_BASE
+#define TORCH_BASE
+
+include "mlir/IR/OpBase.td"
+
+def Torch_Dialect : Dialect {
+  let name = "torch";
+  let cppNamespace = "::mlir::torch::Torch";
+  let description = [{
+    Top-level dialect for interfacing PyTorch and MLIR.
+
+    This dialect maintains a fairly isomorphic representation with TorchScript.
+
+    This dialect also provides transforms that lower it to the
+    "Torch backend contract", which is an IR form that we present to
+    later conversions.
+    The Torch backend contract significantly simplifies the IR representation
+    and puts it in a form easier for later lowering to work on. Specifically:
+    - The TorchScript object graph has been flattened to a list of globals (see
+      the GlobalizeObjectGraph tranformation).
+    - Most of the operations have been changed to operate on value-semantic
+      tensors (see MaximizeValueSemantics)
+    - The number of op variants have been reduced (see ReduceOpVariants)
+    - Tensor sizes have been analyzed and static ranks inferred where possible
+      and propagated throughout the program.
+  }];
+
+  let hasRegionArgAttrVerify = 1;
+  let hasConstantMaterializer = 1;
+  let useDefaultTypePrinterParser = 0;
+
+  let extraClassDeclaration = [{
+    /// Parse a type registered to this dialect.
+    Type parseType(DialectAsmParser &parser) const override;
+    /// Print a type registered to this dialect.
+    void printType(Type type, DialectAsmPrinter &printer) const override;
+  }];
+}
+
+class TorchOpTrait<string name> : NativeOpTrait<""> {
+  let trait = name;
+  let cppNamespace = "::mlir::torch::Torch::OpTrait";
+}
+
+def HasValueSemantics : TorchOpTrait<"HasValueSemantics">;
+def ReadOnly : TorchOpTrait<"ReadOnly">;
+def IsTrailingUnderscoreInplaceVariant
+  : TorchOpTrait<"IsTrailingUnderscoreInplaceVariant">;
+def AllowsTypeRefinement : TorchOpTrait<"AllowsTypeRefinement">;
+def AllowedInModuleInitializer : TorchOpTrait<"AllowedInModuleInitializer">;
+
+#endif // TORCH_BASE
+
+********************
+/home/liuyang/Experiments/MLIR-experiments/mlir-related-projects/torch-mlir/include/torch-mlir/Dialect/Torch/IR/TorchOps.td
+//===-------------------------------------------------------*- tablegen -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Also available under a BSD-style license. See LICENSE.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef TORCH_OPS
+#define TORCH_OPS
+
+include "torch-mlir/Dialect/Torch/IR/TorchTypes.td"
+include "mlir/IR/BuiltinAttributes.td"
+include "mlir/IR/OpAsmInterface.td"
+include "mlir/IR/SymbolInterfaces.td"
+include "mlir/Interfaces/CastInterfaces.td"
+include "mlir/Interfaces/ControlFlowInterfaces.td"
+include "mlir/Interfaces/InferTypeOpInterface.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
+
+class Torch_Op<string mnemonic, list<Trait> traits = []>
+    : Op<Torch_Dialect, mnemonic, traits> {
+}
+
+include "torch-mlir/Dialect/Torch/IR/GeneratedTorchOps.td"
+
+//===----------------------------------------------------------------------===//
+// TorchScript `torch.nn.Module` object instantiation ops.
+//===----------------------------------------------------------------------===//
+
+def Torch_NnModuleOp : Torch_Op<"nn_module", [
+    DeclareOpInterfaceMethods<SymbolUserOpInterface>,
+    SingleBlockImplicitTerminator<"::mlir::torch::Torch::NnModuleTerminatorOp">]> {
+  let summary = "Constructs a torch.nn.Module";
+  let description = [{
+    This op is used to represent a torch.nn.Module when importing a
+    graph of Python objects.
+
+    This op returns a new torch.nn.Module as an SSA value, with a set of
+    declaratively specified properties.
+
+    Example:
+
+    ```mlir
+    %2 = torch.nn_module {
+      torch.slot "b", %bool_true : !torch.bool
+      torch.slot "i", %int3 : !torch.int
+      torch.slot "f", %float : !torch.float
+      torch.slot "t", %t : !torch.tensor
+      torch.slot "submodule", %1 : !torch.nn.Module
+    } : !torch.nn.Module<"my_class_name">
+    ```
+
+    This op is tightly coupled to the `torch.class_type` op named in the
+    `!torch.nn.Module<"my_class_name">` type. Each slot must match precisely
+    with the corresponding `torch.attr` in the `torch.class_type`.
+    See the documentation for `torch.class_type` for information.
+  }];
+
+  let arguments = (ins);
+  let results = (outs Torch_NnModuleType:$result);
+  let regions = (region SizedRegion<1>:$region);
+  let hasVerifier = 1;
+
+  let assemblyFormat = "$region attr-dict `:` qualified(type($result))";
+
+  let extraClassDeclaration = [{
+    StringRef getClassName() { return getType().getClassName(); }
+    ClassTypeOp getClassType(::mlir::SymbolTable &symbolTable) {
+      return symbolTable.lookup<ClassTypeOp>(getClassName());
+    }
+  }];
+}
+
+def Torch_NnModuleTerminatorOp : Torch_Op<"nn_module_terminator", [Terminator,
+    HasParent<"::mlir::torch::Torch::NnModuleOp">]> {
+  let summary = "Implicit terminator for torch.nn_module";
+
+  let arguments = (ins);
+  let results = (outs);
+
+  let assemblyFormat = "attr-dict";
+}
+
+def Torch_SlotOp : Torch_Op<"slot", [
+    HasParent<"::mlir::torch::Torch::NnModuleOp">]> {
+  let summary = "Define the value of a slot of a torch.nn.Module";
+  let description = [{
+    This op specifies that the initial value of the slot `name` of the
+    parent torch.nn_module should be `value`, which is allowed to be an
+    arbitrary Torch-compatible SSA value, including other !torch.nn.Module's.
+  }];
+
+  let arguments = (ins StrAttr:$name, AnyTorchType:$value);
+  let results = (outs);
+
+  let assemblyFormat = [{
+    $name `,` $value attr-dict `:` qualified(type($value))
+  }];
+}
+
+//===----------------------------------------------------------------------===//
+// Modeling of TorchScript class types
+//===----------------------------------------------------------------------===//
+
+def Torch_ClassTypeOp : Torch_Op<"class_type", [
+    Symbol,
+    SingleBlockImplicitTerminator<"::mlir::torch::Torch::ClassTypeTerminatorOp">]> {
+  let summary = "Constructs a torch.ClassType";
+  let description = [{
+    Declares a class type. Class types are the types used to describe
+    TorchScript `torch.nn.Module`'s. The terminology "class type" is for
+    consistency with TorchScript (a better name in our context might be
+    "nn module subtype"). The `syn_name` of this op is the same string
+    as in the `!torch.nn.Module<"...">` type.
+
+    Example:
+
+    ```mlir
+    // A simple empty torch.class_type, with corresponding torch.nn_module.
+    torch.class_type @empty {}
+    %submodule = torch.nn_module {} : !torch.nn.Module<"empty">
+
+    // A class type with many members.
+    torch.class_type @test {
+      torch.attr "b" : !torch.bool
+      torch.attr "i" : !torch.int
+      torch.attr "f" : !torch.float
+      torch.attr "t" : !torch.tensor
+      torch.attr "submodule" : !torch.nn.Module<"empty">
+      torch.method "method", @f
+    }
+    torch.nn_module {
+      // These must match the order and names in the `torch.class_type`.
+      torch.slot "b", %bool_true : !torch.bool
+      torch.slot "i", %int3 : !torch.int
+      torch.slot "f", %float : !torch.float
+      torch.slot "t", %t : !torch.tensor
+      torch.slot "submodule", %submodule : !torch.nn.Module<"empty">
+    } : !torch.nn.Module<"test">
+    ```
+  }];
+
+  let arguments = (ins SymbolNameAttr:$sym_name);
+  let results = (outs);
+  let regions = (region SizedRegion<1>:$region);
+  let hasVerifier = 1;
+
+  let assemblyFormat = "$sym_name $region attr-dict";
+}
+
+def Torch_ClassTypeTerminatorOp : Torch_Op<"class_type_terminator", [Terminator,
+    HasParent<"::mlir::torch::Torch::ClassTypeOp">]> {
+  let summary = "Implicit terminator for torch.class_type";
+
+  let arguments = (ins);
+  let results = (outs);
+
+  let assemblyFormat = "attr-dict";
+}
+
+def Torch_MethodOp : Torch_Op<"method", [
+    HasParent<"::mlir::torch::Torch::ClassTypeOp">,
+    DeclareOpInterfaceMethods<SymbolUserOpInterface>
+  ]> {
+  let summary = "Declare a method of a torch.class_type";
+  let description = [{
+    This op declaratively specifies that the parent torch.class_type has a
+    method `name` which calls `function`. `function` is an unbound function.
+    That is, it explicitly takes the torch.nn.Module as a parameter (no implicit
+    "self" object).
+
+    If `private` is present, it indicates that external calls cannot be made
+    to this method.
+  }];
+
+  // We don't use sym_visibility because that only applies to Symbol's, and
+  // some of the related concepts like "nested" visibility are specific to
+  // symbols.
+  let arguments = (ins
+    StrAttr:$name,
+    FlatSymbolRefAttr:$function,
+    // `private` is a C++ keyword, so use `isPrivate`.
+    UnitAttr:$isPrivate
+  );
+  let results = (outs);
+
+  let assemblyFormat = [{
+    (`private` $isPrivate^)? $name `,` $function attr-dict
+  }];
+}
+
+def Torch_AttrOp : Torch_Op<"attr", [
+    HasParent<"::mlir::torch::Torch::ClassTypeOp">
+  ]> {
+  let summary = "Declare an attribute of a torch.class_type";
+  let description = [{
+    This op declaratively specifies that torch.nn.Module's of the parent
+    torch.class_type must have an attribute `name` of type `type`.
+
+********************
+/home/liuyang/Experiments/MLIR-experiments/mlir-related-projects/torch-mlir/include/torch-mlir/Dialect/Torch/IR/TorchTypes.td
+//===-------------------------------------------------------*- tablegen -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Also available under a BSD-style license. See LICENSE.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef TORCH_TYPES
+#define TORCH_TYPES
+
+include "mlir/IR/AttrTypeBase.td"
+include "mlir/IR/DialectBase.td"
+include "torch-mlir/Dialect/Torch/IR/TorchBase.td"
+
+//===----------------------------------------------------------------------===//
+// Type defs
+//===----------------------------------------------------------------------===//
+
+class Torch_Type<string name, string typeMnemonic,
+                 string baseCppClass = "::mlir::Type">
+    : TypeDef<Torch_Dialect, name, [], baseCppClass> {
+  let mnemonic = typeMnemonic;
+}
+
+class Torch_TypeWithContainedType<string name, string typeMnemonic> : Torch_Type<name, typeMnemonic> {
+  let parameters = (ins "::mlir::Type":$containedType);
+  let hasCustomAssemblyFormat = 1;
+
+  let builders = [
+    TypeBuilderWithInferredContext<(ins "::mlir::Type":$containedType), [{
+      return Base::get(containedType.getContext(), containedType);
+    }]>
+  ];
+}
+
+def Torch_NnModuleType : Torch_Type<"NnModule", "nn.Module"> {
+  let summary = "torch.nn.Module";
+  let description = [{
+    Represents an instance of a `torch.nn.Module` with the given `className`.
+  }];
+  let parameters = (ins StringRefParameter<"class name">:$className);
+  let hasCustomAssemblyFormat = 1;
+}
+
+// For standard ArrayRefs, which require allocation.
+class OptionalArrayRefTorchParameter<string arrayOf, string desc = ""> :
+    AttrOrTypeParameter<
+      "::std::optional<::llvm::ArrayRef<" # arrayOf # ">>", desc> {
+  let allocator = [{
+    if ($_self.has_value()) {
+      $_dst.value() = $_allocator.copyInto($_self.value());
+    }
+  }];
+}
+
+class AnyTorchTensorType<string name, string typeMnemonic>
+    : Torch_Type<name, typeMnemonic, "::mlir::torch::Torch::BaseTensorType"> {
+  let summary = "Multi-dimensional array modeling Torch's Tensor type";
+  let description = [{
+    Syntax:
+
+    ```
+    tensor-type ::= (`!torch.tensor` | `!torch.vtensor`) tensor-modifiers?
+    tensor-modifiers ::= `<` sizes-spec `,` dtype-spec (',' sparsity)? `>`
+    sizes-spec ::= `*` | `[` size-list `]`
+    size-list ::= /*empty*/ | size-list-nonempty
+    size-list-nonempty = size (`,` size)*
+    size ::= `?` | decimal-literal
+    dtype-spec ::= `unk` | type
+    sparsity ::= attribute-value
+    ```
+
+    Represents a multi-dimensional array to model Torch's `torch.Tensor` type.
+
+    If the type is `!torch.tensor`, it represents a general unrestricted
+    `torch.Tensor`, including potential mutability, aliasing, etc.
+    If the type is `!torch.vtensor` then the tensor is restricted to operations
+    that have value semantics ("v" = "value semantics"). This helps to maintain
+    a strict separation between the value-semantic and potentially-mutating
+    worlds, as one of our main jobs in Torch-MLIR is to normalize the program
+    into a form with value semantics.
+    Some notes about value semantics:
+      - Using the type system described in PEP 483 (which TorchScript and other
+        Python systems follow), `!torch.tensor` is a subtype of
+        `!torch.vtensor`. Specifically, both types have the same set of values,
+        but `!torch.tensor` additionally allows aliasing or mutating
+        operations.
+      - Despite being a subtype, a `!torch.tensor` carries *less* static
+        information than a corresponding `!torch.vtensor`. In particular,
+        `!torch.vtensor` carries the static information "not used in aliasing
+        or mutating operations".
+      - `!torch.vtensor` can be trivially converted to the builtin `tensor`
+        type when the dtype is known (the builtin `tensor` type does not allow
+        an unknown dtype).
+
+    In the absence of the `tensor-modifiers`, the type contains the minimal
+    amount of static information. That is, `!torch.tensor` is equivalent to
+    `!torch.tensor<*,unk>` (and similarly for `!torch.vtensor`).
+
+    If `sizes-spec` is not `*`, it indicates additional static information
+    about the sizes of the tensor. It will consist of a list of elements,
+    with length equal to the "rank" (in MLIR parlance) or "ndim"
+    (in Torch parlance). Each element represents a size, with the typical
+    MLIR representation of a number for a statically known size and `?` for a
+    size that is unknown. Thus, the lattice consists of `*` as the least static
+    information, followed by lists containing unknown sizes such as `[?,?,?]`
+    which contribute rank information, followed by statically specified sizes
+    for some dimensions such as `[?,3,?]`, followed by fully statically
+    specified sizes such as `[2,3,4]`.
+
+    If `dtype-spec` is not `unk` ("unknown"), it contains an MLIR type
+    which contributes static information about the dtype of the tensor.
+    Only types allowed by Torch are permitted.
+    ```
+    |-------------------|--------------------|
+    | Torch Type        | MLIR Type          |
+    |-------------------|--------------------|
+    | torch.float16     | f16                |
+    | torch.bfloat16    | bf16               |
+    | torch.float32     | f32                |
+    | torch.float64     | f64                |
+    | torch.uint8       | ui8                |
+    | torch.int8        | si8                |
+    | torch.int16       | si16               |
+    | torch.int32       | si32               |
+    | torch.int64       | si64               |
+    | torch.bool        | i1                 |
+    | torch.qint8       | !torch.qint8       |
+    | torch.quint8      | !torch.quint8      |
+    | torch.qint32      | !torch.qint32      |
+    | torch.complex64   | complex<f32>       |
+    | torch.complex128  | complex<f64>       |
+    |-------------------|--------------------|
+    ```
+
+    The `sparsity` attribute directly mirrors the additional tensor `encoding`
+    defined by upstream MLIR on the RankedTensorType. Unlike the upstream
+    attribute, however, this attribute is exclusively used to denote a
+    straightforward tensor (with an empty attribute) or a sparse tensor
+    (with a SparseTensorEncodingAttr).
+
+    TODO: Support the full set of Torch dtypes.
+    TODO: Use si1?
+
+    Note: We avoid the C++ identifier `TensorType` to avoid C++ name ambiguities
+    with `mlir::TensorType`, since most code is transitively nested in
+    both `::mlir` and `::mlir::torch::Torch` namespaces.
+
+    Note: We use the Torch-aligned terminology "sizes" and "dtype" instead of
+    the MLIR-aligned terminology "rank/shape" and "element type". The cheat
+    sheet is:
+    - `hasRank()` -> `hasSizes()`
+    - `getShape()` -> `getSizes()`
+    - `getElementType()` -> `getDtype()` (but be sure that `hasDtype()` though).
+  }];
+  let parameters = (ins
+    OptionalArrayRefTorchParameter<"int64_t", "sizes of dimensions">:$optionalSizes,
+    "::mlir::Type":$optionalDtype,
+    "Attribute":$optionalSparsity
+  );
+  let builders = [
+    // Provide builder where optionalSparsity is empty by default.
+    TypeBuilder<(ins
+      "::std::optional<ArrayRef<int64_t>>":$optionalSizes,
+      "::mlir::Type":$optionalDtype,
+      CArg<"Attribute", "{}">:$optionalSparsity
+    ), [{
+      return $_get(context, optionalSizes, optionalDtype, optionalSparsity);
+    }]>
+  ];
+  let skipDefaultBuilders = 1;
+  let genVerifyDecl = 1;
+  let hasCustomAssemblyFormat = 1;
+  string extraBaseClassDeclaration = [{
+  }];
+}
+
+def Torch_NonValueTensorType : AnyTorchTensorType<"NonValueTensor", "tensor"> {
+  let extraClassDeclaration = extraBaseClassDeclaration # [{
+    // Get this type, with value semantics added.
+    ValueTensorType getWithValueSemantics() const;
+    // Get the !torch.tensor type with the least static information.
+    static NonValueTensorType getWithLeastStaticInformation(MLIRContext *context);
+  }];
+}
+
+def Torch_ValueTensorType : AnyTorchTensorType<"ValueTensor", "vtensor"> {
+  let extraClassDeclaration = extraBaseClassDeclaration # [{
+    // Get this type, with value semantics removed.
+    NonValueTensorType getWithoutValueSemantics() const;
+    // Get the !torch.tensor type with the least static information.
+    static ValueTensorType getWithLeastStaticInformation(MLIRContext *context);
+    // Get the builtin tensor type with the same static information as this one,
+    // or nullptr if that is not possible (i.e. when the dtype is unknown).
+    TensorType toBuiltinTensor() const;
+  }];
+}
+
+
+********************
+/home/liuyang/Experiments/MLIR-experiments/mlir-related-projects/torch-mlir/include/torch-mlir/Dialect/Torch/Transforms/Passes.td
+//===-- Passes.td - Pass definition file -------------------*- tablegen -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Also available under a BSD-style license. See LICENSE.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef TORCHMLIR_TORCH_PASSES
+#define TORCHMLIR_TORCH_PASSES
+
+include "mlir/Pass/PassBase.td"
+
+def GlobalizeObjectGraph : Pass<"torch-globalize-object-graph", "ModuleOp"> {
+  let summary = "Converts TorchScript object graphs to a globalized form";
+  let constructor = "mlir::torch::Torch::createGlobalizeObjectGraphPass()";
+  let description = [{
+    This pass converts a subset of possible TorchScript modules into a
+    more restrictive lower-level form that strips away the need to be
+    concerned with instances of !torch.nn.Module<...> type. Specifically,
+    the object graph is flattened into a set of discrete globals
+    (`torch.global_slot`) that hold the program state.
+
+    The overarching goal is for a strict correspondence between the original
+    `torch.nn.Module` (call it `root`) that the user `torch.jit.script`'ed, and
+    the public interface of the resulting MLIR module. Specifically:
+      - The call `root.encoder.forward(...)` in Python corresponds to invoking
+        the `func @encoder.forward` on the resulting MLIR module.
+      - The data member access `root.decoder.ids_to_strings_table` in Python
+        corresponds to accessing the
+        `torch.global_slot @decoder.ids_to_strings_table` on the resulting
+        MLIR module.
+    In effect, the entire MLIR module corresponds to an instance of the `root`
+    object. This matches with the intuitive behavior desired for deployment:
+    When the MLIR module (or, more likely, a compiled artifact derived from it)
+    is loaded in a deployed environment, it is equivalent to recreating the
+    original `root` object.
+
+    This pass performs a complete change of the externally visible calling
+    convention of the MLIR module for a graph of objects and methods to a
+    fixed set of globals and functions. Additionally, method signatures are
+    changed such that all types of !torch.nn.Module are deleted from public
+    interfaces since they are guaranteed to correspond to a unique instance and
+    are thus redundant.
+
+    Of course, only a subset of programs can be transformed, and this pass fails
+    with an error if the conditions are violated.
+
+    Specifically, the restrictions are:
+    - There must be a unique torch.nn_module that is not the value of a slot
+      of any other torch.nn_module
+      - Rationale: Allows us to have a notion of a unique "root" op, which is
+        used to define linkage. This also matches how TorchScript imports in
+        practice (`torch.jit.script` imports a single root object).
+    - Multiple instances of the same class type are allowed, as long as it is
+      possible to monomorphize ("template instantiate") functions so that each
+      argument of !torch.nn.Module type corresponds to a unique instance.
+      In practice, this limitation is either 1) (fundamental) due to truly
+      dynamic use of modules, such as `m1 if cond() else m2` in Python code,
+      or 2) (incidental) imprecision of the static analysis used in this pass
+      which is used to calculate when a single intance is relevant. In general,
+      this analysis is equivalent to the halting problem, but we can aim to
+      improve this pass such that practical patterns are all handled.
+      - Rationale: The fundamental limitation "1)" guarantees that the
+        program can be lowered to a fixed set of globals without indirection
+        across globals. In the absence of this property, most compiler
+        analyses/transformations are significantly curtailed (or require very
+        sophisticated implementations). For the moment, this restriction
+        is deemed to be sufficiently reasonable to be a pragmatic choice to
+        avoid front-loading the complexity of working with a representation that
+        really does a good job of representing that kind of program.
+        Additionally, it avoids front-loading the handling of programs which
+        have !torch.nn.Module types at external calling convention boundaries.
+    - All torch.nn_module's must be reachable by a unique path from the root
+      - Rationale: Eliminates possibility of potentially exponential number of
+        paths. Or worse, infinite number of paths when considering cyclic
+        object graphs. Also as of Feb 2021, TorchScript won't import into
+        this form (it has a bug related to the identity of submodules).
+    - Two slots cannot have initial values that alias each other.
+      - Rationale: This makes the representation of initial values simpler. Also
+        as of Feb 2021, TorchScript won't import into this form except
+        potentially for Tensors (it has a bug related to the identity of
+        objects). And for tensors, the IValue importer only supports a
+        very restricted form of aliasing anyway for other reasons. We are
+        waiting for signals that more general handling of object aliasing is
+        important to devote the effort to it.
+  }];
+}
+
+def PrepareForGlobalizeObjectGraph
+  : Pass<"torch-prepare-for-globalize-object-graph", "ModuleOp"> {
+  let summary = "Lowering in preparation for globalizing";
+  let constructor = "mlir::torch::Torch::createPrepareForGlobalizeObjectGraphPass()";
+  let description = [{
+    Establishes and the invariants needed by the
+    torch-globalize-object-graph transformation. Fails if that cannot be
+    accomplished.
+
+    Currently, this just involves ensuring a small set of patterns have been
+    applied.
+  }];
+}
+
+def AdjustCallingConventions
+  : Pass<"torch-adjust-calling-conventions", "ModuleOp"> {
+  let summary = "Adjust the calling conventions of functions";
+  let constructor = "mlir::torch::Torch::createAdjustCallingConventionsPass()";
+  let description = [{
+    Adjusts the calling conventions of functions in the module, with the aim of
+    preparing them for backends and further lowering passes. As this changes
+    the module calling convention, it should be considered a legalization
+    step towards reaching IR that is suitable for an appropriate backend.
+    All transformations are context-free and suitable for documenting
+    at the user level if needed to clarify the eventual calling convention
+    of compiled artifacts.
+    This is not an optimization.
+
+    The transformations performed are:
+    - `torch.type_bound` annotations are incorporated into the type of the
+      function arguments, which should be `!torch.tensor<...>`'s.
+    - Python-isms are rewritten to MLIR-isms
+      - NoneType return is rewritten to the absence of a return value.
+      - Tuple return is rewritten to multiple return values.
+
+  }];
+}
+
+def InlineGlobalSlots : Pass<"torch-inline-global-slots", "ModuleOp"> {
+  let summary = "Inlines torch.global_slot ops.";
+  let constructor = "mlir::torch::Torch::createInlineGlobalSlotsPass()";
+  let description = [{
+    Inlines torch.global_slot ops when it is safe to do so.
+
+    Note: This pass inlines everything that is safe to inline. That is, it
+    doesn't have a cost model. This is likely to pessimize programs with
+    significant amounts of computation inside torch.initialize.global_slotsr
+    regions (but this currently doesn't happen due to how TorchScript modules
+    are imported -- the contents are just constants).
+  }];
+}
+
+def ReduceOpVariants : Pass<"torch-reduce-op-variants", "func::FuncOp"> {
+  let summary = "Reduces variants of ops to a smaller set of ops.";
+  let constructor = [{
+    mlir::torch::Torch::createReduceOpVariantsPass(/*extraLibrary=*/"")
+  }];
+  let options = [
+    Option<"extraLibrary", "extra-library", "std::string", /*default=*/"",
+           "MLIR module for verifying custom op value semantics">,
+  ];
+  let description = [{
+    Replaces ops with other ops to reduce the number of variants that
+    need to be handled elsewhere in the code.
+
+    Examples of the transformations done in this pass are:
+    - Convert operations with value semantics to operate on immutable tensors
+    - Convert operations with in-place semantics (e.g. `add_`) or inherently
+      mutable semantics (e.g. `add.out`) to their value-semantic equivalent.
+    - Convert operations that involve a scalar promotion to the tensor
+      variant plus a scalar promotion op.
+  }];
+}
+
+def MaximizeValueSemantics : Pass<"torch-maximize-value-semantics", "func::FuncOp"> {
+  let summary = "Use value-semantic tensors where possible.";
+  let description = [{
+    Use value-semantic tensors where possible to make the program more
+    analyzable by later passes (also, backends prefer value semantics as well).
+
+    This pass is analogous to an SSA-formation pass in a
+    traditional compiler, with the added complication that arrays can alias
+    each other in interesting ways.
+
+    The current code doesn't implement any fancy algorithm, and is intended
+    to be just sufficient for a first e2e spike. An algorithm inspired by the
+    SSA formation literature will need to be implemented.
+
+    Also, this pass doesn't currently handle interprocedural rewriting
+    (of private functions), which is even more complex.
+  }];
+  let constructor = "mlir::torch::Torch::createMaximizeValueSemanticsPass()";
+}
+
+
+def RefinePublicReturn : Pass<"torch-refine-public-return", "ModuleOp"> {
+  let summary = "Refine public return";
+  let constructor = "mlir::torch::Torch::createRefinePublicReturnPass()";
+  let description = [{
+    Refines types of values returned from public functions based on
+    intraprocedural information.
+
+    This pass effectively encodes an assumption by the pass pipeline author that
+    the public calling convention of the module can have its types refined,
+    without causing ABI mismatches. This is frequently true -- for example, in
+    many systems, `!torch.vtensor<[?,?],f32>`, `!torch.vtensor<[3,3],f32>` and
+    `!torch.vtensor` are all the same data structure on calling
+    convention boundaries.
+
+    This pass is expected to run after shape refinement has occurred to
+
+********************
+/home/liuyang/Experiments/MLIR-experiments/mlir-related-projects/torch-mlir/include/torch-mlir/Dialect/TorchConversion/IR/TorchConversionBase.td
+//===-------------------------------------------------------*- tablegen -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Also available under a BSD-style license. See LICENSE.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef TORCHCONVERSION_BASE
+#define TORCHCONVERSION_BASE
+
+include "mlir/IR/OpBase.td"
+
+def TorchConversion_Dialect : Dialect {
+  // `torch_conversion` is too verbose.
+  let name = "torch_c";
+  let cppNamespace = "::mlir::torch::TorchConversion";
+  let description = [{
+    This dialect contains ops and transforms for converting from the Torch
+    backend contract to the linalg-on-tensors backend contract.
+
+    This mainly consists of converting ops and types from `torch` dialect
+    to the mix of dialects of the linalg-on-tensors backend contract, such as
+    tensor ops being converted linalg-on-tensors and `!torch.vtensor` being
+    converted to the builtin `tensor` type.
+  }];
+
+  let hasConstantMaterializer = 1;
+}
+
+#endif // TORCHCONVERSION_BASE
+
+********************
+/home/liuyang/Experiments/MLIR-experiments/mlir-related-projects/torch-mlir/include/torch-mlir/Dialect/TorchConversion/IR/TorchConversionOps.td
+//===-------------------------------------------------------*- tablegen -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Also available under a BSD-style license. See LICENSE.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef TORCHCONVERSION_OPS
+#define TORCHCONVERSION_OPS
+
+include "mlir/IR/OpAsmInterface.td"
+include "mlir/IR/SymbolInterfaces.td"
+include "mlir/Interfaces/InferTypeOpInterface.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
+include "torch-mlir/Dialect/Torch/IR/TorchTypes.td"
+include "torch-mlir/Dialect/TorchConversion/IR/TorchConversionBase.td"
+
+class TorchConversion_Op<string mnemonic, list<Trait> traits = []>
+    : Op<TorchConversion_Dialect, mnemonic, !listconcat(traits, [Pure])> {
+}
+
+//===----------------------------------------------------------------------===//
+// Conversions to backend types.
+//===----------------------------------------------------------------------===//
+
+def TorchConversion_ToBuiltinTensorOp : TorchConversion_Op<"to_builtin_tensor"> {
+  let summary = "Convert a `!torch.vtensor` to a `tensor`";
+  let description = [{
+    This op only operates on ValueTensorType, to avoid conflating conversions
+    between value-semantic and non-value-semantic types.
+  }];
+  let arguments = (ins
+    Torch_ValueTensorType:$operand
+  );
+  let results = (outs
+    AnyTensor:$result
+  );
+  let assemblyFormat = [{
+    $operand attr-dict `:` qualified(type($operand)) `->` qualified(type($result))
+  }];
+  let hasVerifier = 1;
+}
+
+def TorchConversion_FromBuiltinTensorOp : TorchConversion_Op<"from_builtin_tensor">
+ {
+  let summary = "Convert a `tensor` to a `!torch.vtensor`";
+  let description = [{
+    This op only operates on ValueTensorType, to avoid conflating conversions
+    between value-semantic and non-value-semantic types.
+  }];
+  let arguments = (ins
+    AnyTensor:$operand
+  );
+  let results = (outs
+    Torch_ValueTensorType:$result
+  );
+  let assemblyFormat = [{
+    $operand attr-dict `:` qualified(type($operand)) `->` qualified(type($result))
+  }];
+  let hasVerifier = 1;
+}
+
+def TorchConversion_ToI1Op : TorchConversion_Op<"to_i1", [
+    DeclareOpInterfaceMethods<InferTypeOpInterface>
+  ]> {
+  let summary = "Convert a `!torch.bool` to an `i1`";
+  let description = [{
+    This op is primarily useful as a materialization during dialect conversion.
+  }];
+  let arguments = (ins
+    Torch_BoolType:$operand
+  );
+  let results = (outs
+    I1:$result
+  );
+  let assemblyFormat = [{
+    $operand attr-dict
+  }];
+  let hasFolder = 1;
+}
+
+def TorchConversion_FromI1Op : TorchConversion_Op<"from_i1", [
+    DeclareOpInterfaceMethods<InferTypeOpInterface>
+  ]> {
+  let summary = "Convert an `i1` to a `!torch.bool`";
+  let description = [{
+    This op is primarily useful as a materialization during dialect conversion.
+  }];
+  let arguments = (ins
+    I1:$operand
+  );
+  let results = (outs
+    Torch_BoolType:$result
+  );
+  let assemblyFormat = [{
+    $operand attr-dict
+  }];
+  let hasFolder = 1;
+}
+
+def TorchConversion_ToI64Op : TorchConversion_Op<"to_i64", [
+    DeclareOpInterfaceMethods<InferTypeOpInterface>
+  ]> {
+  let summary = "Convert a `!torch.int` to an `i64`";
+  let description = [{
+    This op is primarily useful as a materialization during dialect conversion.
+  }];
+  let arguments = (ins
+    Torch_IntType:$operand
+  );
+  let results = (outs
+    I64:$result
+  );
+  let assemblyFormat = [{
+    $operand attr-dict
+  }];
+  let hasFolder = 1;
+}
+
+def TorchConversion_FromI64Op : TorchConversion_Op<"from_i64", [
+    DeclareOpInterfaceMethods<InferTypeOpInterface>
+  ]> {
+  let summary = "Convert an `i64` to a `!torch.int`";
+  let description = [{
+    This op is primarily useful as a materialization during dialect conversion.
+  }];
+  let arguments = (ins
+    I64:$operand
+  );
+  let results = (outs
+    Torch_IntType:$result
+  );
+  let assemblyFormat = [{
+    $operand attr-dict
+  }];
+  let hasFolder = 1;
+}
+
+def TorchConversion_ToF64Op : TorchConversion_Op<"to_f64", [
+    DeclareOpInterfaceMethods<InferTypeOpInterface>
+  ]> {
+  let summary = "Convert a `!torch.float` to an `f64`";
+  let description = [{
+    This op is primarily useful as a materialization during dialect conversion.
+  }];
+  let arguments = (ins
+    Torch_FloatType:$operand
+  );
+  let results = (outs
+    F64:$result
+  );
+  let assemblyFormat = [{
+    $operand attr-dict
+  }];
+  let hasFolder = 1;
+}
+
+def TorchConversion_FromF64Op : TorchConversion_Op<"from_f64", [
+    DeclareOpInterfaceMethods<InferTypeOpInterface>
+  ]> {
+  let summary = "Convert an `f64` to a `!torch.float`";
+  let description = [{
+    This op is primarily useful as a materialization during dialect conversion.
+  }];
+  let arguments = (ins
+    F64:$operand
+  );
+  let results = (outs
+    Torch_FloatType:$result
+  );
+  let assemblyFormat = [{
+    $operand attr-dict
+  }];
+  let hasFolder = 1;
+}
+
+def TorchConversion_I64ToGeneratorOp : TorchConversion_Op<"i64_to_generator", [
+    DeclareOpInterfaceMethods<InferTypeOpInterface>
+  ]> {
+  let summary = "Convert an `i64` to an `Generator`";
+  let description = [{
+    This op is primarily useful as a materialization during dialect conversion.
+  }];
+  let arguments = (ins
+    I64:$operand
+  );
+  let results = (outs
+    Torch_GeneratorType:$result
+  );
+  let assemblyFormat = [{
+    $operand attr-dict
+  }];
+}
+
+def TorchConversion_GeneratorToI64Op : TorchConversion_Op<"generator_to_i64", [
+    DeclareOpInterfaceMethods<InferTypeOpInterface>
+  ]> {
+  let summary = "Convert a `Generator` to a `i64`";
+
+********************
+/home/liuyang/Experiments/MLIR-experiments/mlir-related-projects/torch-mlir/include/torch-mlir/Dialect/TorchConversion/Transforms/Passes.td
+//===-- Passes.td - Pass definition file -------------------*- tablegen -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Also available under a BSD-style license. See LICENSE.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef TORCHMLIR_TORCHCONVERSION_PASSES
+#define TORCHMLIR_TORCHCONVERSION_PASSES
+
+include "mlir/Pass/PassBase.td"
+
+def FuncBackendTypeConversion : Pass<"torch-func-backend-type-conversion", "ModuleOp"> {
+  let summary = "Convert functions to operate on builtin tensors";
+  let constructor = "mlir::torch::TorchConversion::createFuncBackendTypeConversionPass()";
+  let description = [{
+    Partial type conversion pass analogous in scope to the upstream
+    `func-bufferize` pass. See details there.
+  }];
+}
+
+#ifdef TORCH_MLIR_ENABLE_STABLEHLO
+def FuncBackendTypeConversionForStablehlo : Pass<"torch-func-backend-type-conversion-for-stablehlo", "ModuleOp"> {
+  let summary = "Convert functions to operate on builtin tensors for stablehlo backend";
+  let constructor = "mlir::torch::TorchConversion::createFuncBackendTypeConversionForStablehloPass()";
+  let description = [{
+    Partial type conversion pass analogous in scope to the upstream
+    `func-bufferize` pass. See details there.
+  }];
+}
+#endif // TORCH_MLIR_ENABLE_STABLEHLO
+
+def FinalizingBackendTypeConversion
+    : InterfacePass<"torch-finalizing-backend-type-conversion", "mlir::FunctionOpInterface"> {
+  let summary = "Finalizes a partial conversion to builtin tensors";
+  let constructor =
+    "mlir::torch::TorchConversion::createFinalizingBackendTypeConversionPass()";
+  let description = [{
+    Analogous in scope to the upstream `finalizing-bufferize` pass.
+    See details there.
+  }];
+}
+
+#ifdef TORCH_MLIR_ENABLE_STABLEHLO
+def FinalizingBackendTypeConversionForStablehlo
+    : InterfacePass<"torch-finalizing-backend-type-conversion-for-stablehlo", "mlir::FunctionOpInterface"> {
+  let summary = "Finalizes a partial conversion to builtin tensors for stablehlo";
+  let constructor =
+    "mlir::torch::TorchConversion::createFinalizingBackendTypeConversionForStablehloPass()";
+  let description = [{
+    Analogous in scope to the upstream `finalizing-bufferize` pass.
+    See details there.
+  }];
+}
+#endif // TORCH_MLIR_ENABLE_STABLEHLO
+
+def VerifyLinalgOnTensorsBackendContract : Pass<"torch-verify-linalg-on-tensors-backend-contract", "ModuleOp"> {
+  let summary = "Verifies conformity to the linalg-on-tensors backend contract";
+  let constructor = "mlir::torch::TorchConversion::createVerifyLinalgOnTensorsBackendContractPass()";
+}
+
+def VerifyTosaBackendContract : Pass<"torch-verify-tosa-backend-contract", "ModuleOp"> {
+  let summary = "Verifies conformity to the linalg-on-tensors backend contract";
+  let constructor = "mlir::torch::TorchConversion::createVerifyTosaBackendContractPass()";
+}
+
+#ifdef TORCH_MLIR_ENABLE_STABLEHLO
+def VerifyStablehloBackendContract : Pass<"torch-verify-stablehlo-backend-contract", "ModuleOp"> {
+  let summary = "Verifies conformity to the stablehlo backend contract";
+  let constructor = "mlir::torch::TorchConversion::createVerifyStablehloBackendContractPass()";
+}
+#endif // TORCH_MLIR_ENABLE_STABLEHLO
+
+// The following passes are for a one-off conversion of a specific kind of quantized group matmul.
+// They should not be included in default lowering flows until further along.
+def UnpackQuantTensor : InterfacePass<"torch-unpack-quant-tensor", "mlir::FunctionOpInterface"> {
+  let summary = "Unpack quantized int4 tensor from int8 containter";
+  let constructor = "mlir::torch::TorchConversion::createUnpackQuantTensorPass()";
+}
+
+def ConvertCustomQuantOp : InterfacePass<"torch-convert-custom-quant-op", "mlir::FunctionOpInterface"> {
+  let summary = "Convert torch custom quant op to linalg";
+  let constructor = "mlir::torch::TorchConversion::createConvertCustomQuantOpPass()";
+}
+#endif // TORCHMLIR_TORCHCONVERSION_PASSES
+
+********************
+/home/liuyang/Experiments/MLIR-experiments/mlir-related-projects/torch-mlir/include/torch-mlir/RefBackend/Passes.td
+//===-- Passes.td - Pass definition file -------------------*- tablegen -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Also available under a BSD-style license. See LICENSE.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef TORCHMLIR_REFBACKEND_PASSES
+#define TORCHMLIR_REFBACKEND_PASSES
+
+include "mlir/Pass/PassBase.td"
+
+def MungeCallingConventions : Pass<"refback-munge-calling-conventions", "ModuleOp"> {
+  let summary = "Munge calling conventions for calling via ExecutionEngine";
+  let constructor = "mlir::torch::RefBackend::createMungeCallingConventionsPass();";
+  let dependentDialects = ["memref::MemRefDialect"];
+}
+
+def MLProgramBufferize: Pass<"refback-mlprogram-bufferize", "ModuleOp"> {
+  let summary = "Bufferize the MLProgram dialect ops";
+  let constructor = "mlir::torch::RefBackend::createMLProgramBufferizePass();";
+  let dependentDialects = ["memref::MemRefDialect"];
+}
+
+def ExpandOpsForLLVM : Pass<"refback-expand-ops-for-llvm", "func::FuncOp"> {
+  let summary = "Expand ops into more primitive ops before LLVM lowering.";
+  let constructor = "mlir::torch::RefBackend::createExpandOpsForLLVMPass();";
+}
+
+def MungeMemrefCopy : Pass<"refback-munge-memref-copy", "func::FuncOp"> {
+  let summary = "Munge memref.copy to linalg.copy";
+  let constructor = "mlir::torch::RefBackend::createMungeMemrefCopyPass();";
+  let dependentDialects = ["memref::MemRefDialect"];
+}
+
+def GeneralizeTensorConcat : Pass<"refback-generalize-tensor-concat", "func::FuncOp"> {
+  let summary = "Convert tensor.concat to other tensor ops";
+  let constructor = "mlir::torch::RefBackend::createGeneralizeTensorConcatPass()";
+}
+
+def GeneralizeTensorPad : Pass<"refback-generalize-tensor-pad", "func::FuncOp"> {
+  let summary = "Convert tensor.pad to linalg ops";
+  let constructor = "mlir::torch::RefBackend::createGeneralizeTensorPadPass()";
+}
+
+#endif // TORCHMLIR_REFBACKEND_PASSES
+
+********************
+/home/liuyang/Experiments/MLIR-experiments/mlir-related-projects/torch-mlir/python/torch_mlir/dialects/TorchBinding.td
+//===-- TorchBinding.td - Torch dialect bindings -----------*- tablegen -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Also available under a BSD-style license. See LICENSE.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef PYTHON_BINDINGS_TORCH_OPS
+#define PYTHON_BINDINGS_TORCH_OPS
+
+include "torch-mlir/Dialect/Torch/IR/TorchOps.td"
+
+#endif // PYTHON_BINDINGS_TORCH_OPS
+

@@ -1,0 +1,36 @@
+dialects:
+- dialect_name: iree_vector_ext
+  namespace_name: ::mlir::iree_compiler::IREE::VectorExt
+dialects:
+- dialect_name: iree_encoding
+  namespace_name: ::mlir::iree_compiler::IREE::Encoding
+dialects:
+- dialect_name: flow
+  namespace_name: ::mlir::iree_compiler::IREE::Flow
+dialects:
+- dialect_name: hal
+  namespace_name: ::mlir::iree_compiler::IREE::HAL
+dialects:
+- dialect_name: iree_linalg_ext
+  namespace_name: ::mlir::iree_compiler::IREE::LinalgExt
+dialects:
+- dialect_name: stream
+  namespace_name: ::mlir::iree_compiler::IREE::Stream
+dialects:
+- dialect_name: util
+  namespace_name: ::mlir::iree_compiler::IREE::Util
+dialects:
+- dialect_name: vm
+  namespace_name: ::mlir::iree_compiler::IREE::VM
+dialects:
+- dialect_name: vmvx
+  namespace_name: ::mlir::iree_compiler::IREE::VMVX
+dialects:
+- dialect_name: tm_tensor
+  namespace_name: ::mlir::torch::TMTensor
+dialects:
+- dialect_name: torch
+  namespace_name: ::mlir::torch::Torch
+dialects:
+- dialect_name: torch_c
+  namespace_name: ::mlir::torch::TorchConversion

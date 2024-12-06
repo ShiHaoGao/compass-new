@@ -1,0 +1,8 @@
+- dialect: torch
+  names:
+  - refback-munge-calling-conventions
+  - refback-mlprogram-bufferize
+  - refback-expand-ops-for-llvm
+  - refback-munge-memref-copy
+  - refback-generalize-tensor-concat
+  - refback-generalize-tensor-pad

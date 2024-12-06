@@ -1,49 +1,43 @@
 dialects:
-  TMTensor:
-    description: TMTensor dialect
+  tm_tensor:
+    description: tm_tensor dialect
     passes:
     - name: tm-tensor-to-loops
       description: Convert TMTensor ops to loops and Linalg ops.
-      type: FUC
+      type: FUNC
       next_pass: null
     - name: tm-tensor-bufferize
       description: Bufferize the TMTensor dialect
-      type: FUC
+      type: FUNC
       next_pass: null
   torch:
     description: torch dialect
     passes:
     - name: convert-torch-to-arith
       description: Convert recognized Torch ops to Std ops
-      type: FUC
+      type: FUNC
       next_pass: null
     - name: convert-torch-to-scf
       description: Convert recognized Torch ops to SCF ops
-      type: FUC
+      type: FUNC
       next_pass: null
     - name: convert-torch-to-linalg
-      description: Convert ATen ops to linalg ops. This pass's main responsibility
-        is to bridge the world between ops that safely terminate the program in case
-        of operand shape mismatches (ATen) and ops where such mismatches are undefined
-        behavior (linalg). To model the termination of the program for implementing
-        error guards, we use the `cf.assert` op.
-      type: FUC
+      description: Convert ATen ops to linalg ops.
+      type: FUNC
       next_pass: null
     - name: convert-torch-to-tensor
       description: Converts any `Torch` operators that were expressible as `Tensor`
         dialect operations.
-      type: FUC
+      type: FUNC
       next_pass: null
     - name: convert-torch-to-tosa
       description: This pass assumes that TOSA ops are responsible for emitting error
         guards in case of shape mismatches.
-      type: FUC
+      type: FUNC
       next_pass: null
     - name: convert-torch-to-tmtensor
-      description: Convert ATen ops to tmtensor/linalg ops. This pass is similar to
-        the TorchToLinalg pass; the difference is that this pass also makes use of
-        TMTensor Dialect, which the former one doesn't.
-      type: FUC
+      description: Convert ATen ops to tmtensor/linalg ops.
+      type: FUNC
       next_pass: null
     - name: convert-torch-conversion-to-mlprogram
       description: Convert TorchConversion ops to mlprogram ops.
@@ -51,11 +45,7 @@ dialects:
       next_pass: null
     - name: convert-torch-to-stablehlo
       description: Convert Torch ops to Stablehlo ops.
-      type: FUC
-      next_pass: null
-    - name: convert-torch-onnx-to-torch
-      description: Converts ONNX custom ops in the torch dialect to native torch ops
-      type: FUC
+      type: FUNC
       next_pass: null
     - name: torch-globalize-object-graph
       description: Converts TorchScript object graphs to a globalized form
@@ -66,20 +56,21 @@ dialects:
       type: MODULE
       next_pass: null
     - name: torch-adjust-calling-conventions
-      description: Adjust the calling conventions of functions
+      description: Adjusts the calling conventions of functions in the module, with
+        the aim of preparing them for backends and further lowering passes.
       type: MODULE
       next_pass: null
     - name: torch-inline-global-slots
-      description: Inlines torch.global_slot ops.
+      description: Inlines torch.global_slot ops when it is safe to do so.
       type: MODULE
       next_pass: null
     - name: torch-reduce-op-variants
       description: Reduces variants of ops to a smaller set of ops.
-      type: FUC
+      type: FUNC
       next_pass: null
     - name: torch-maximize-value-semantics
       description: Use value-semantic tensors where possible.
-      type: FUC
+      type: FUNC
       next_pass: null
     - name: torch-refine-public-return
       description: Refine public return
@@ -87,23 +78,23 @@ dialects:
       next_pass: null
     - name: torch-decompose-complex-ops
       description: Decompose complicated torch operations
-      type: FUC
+      type: FUNC
       next_pass: null
     - name: torch-scalarize-shapes
       description: Takes common shape computation operations and scalarizes them.
-      type: FUC
+      type: FUNC
       next_pass: null
     - name: torch-recompose-complex-ops
       description: Recompose torch operations that have been decomposed by TorchScript
-      type: FUC
+      type: FUNC
       next_pass: null
     - name: torch-fuse-quantized-ops
       description: 'QDQ: Fuse recognized QDQ op sequences.'
-      type: FUC
+      type: FUNC
       next_pass: null
     - name: torch-match-quantized-custom-ops
       description: Match quantized operations that occur in different namespace.
-      type: FUC
+      type: FUNC
       next_pass: null
     - name: torch-reify-shape-calculations
       description: Reify shape calculations.
@@ -111,7 +102,7 @@ dialects:
       next_pass: null
     - name: torch-simplify-shape-calculations
       description: Simplify reified shape calculations.
-      type: FUC
+      type: FUNC
       next_pass: null
     - name: torch-reify-dtype-calculations
       description: Reify dtype calculations.
@@ -119,11 +110,11 @@ dialects:
       next_pass: null
     - name: torch-simplify-dtype-calculations
       description: Simplify reified dtype calculations.
-      type: FUC
+      type: FUNC
       next_pass: null
     - name: torch-drop-abstract-interp-calculations
       description: Drop reified abstract interpretation calculations.
-      type: FUC
+      type: FUNC
       next_pass: null
     - name: torch-erase-module-initializer
       description: Erase the `torch.global_slot.module_initializer` op.
@@ -139,76 +130,55 @@ dialects:
       next_pass: null
     - name: torch-restructure-non-constant-axes
       description: Ensure that every Reduction.cpp op has a constant reduction axis.
-      type: FUC
+      type: FUNC
       next_pass: null
-    - name: torch-inline-global-slots
-      description: Inlines torch.global_slot ops when it is safe to do so.
-      type: MODULE
+  torch::onnx_c:
+    description: torch::onnx_c dialect
+    passes:
+    - name: convert-torch-onnx-to-torch
+      description: Converts equivalent ONNX custom ops to built-in equivalents.
+      type: FUNC
       next_pass: null
-    - name: torch-func-backend-type-conversion-for-stablehlo
-      description: Partial type conversion pass analogous in scope to the upstream
-        `func-bufferize` pass.
-      type: MODULE
-      next_pass: null
+  torch_c:
+    description: torch_c dialect
+    passes:
     - name: torch-func-backend-type-conversion
       description: Partial type conversion pass analogous in scope to the upstream
-        `func-bufferize` pass.
+        `func-bufferize` pass. See details there.
       type: MODULE
       next_pass: null
     - name: torch-func-backend-type-conversion-for-stablehlo
       description: Partial type conversion pass analogous in scope to the upstream
-        `func-bufferize` pass.
+        `func-bufferize` pass. See details there.
       type: MODULE
       next_pass: null
     - name: torch-finalizing-backend-type-conversion
       description: Analogous in scope to the upstream `finalizing-bufferize` pass.
-      type: mlir::FunctionOpInterface
+        See details there.
+      type: FUNC
       next_pass: null
     - name: torch-finalizing-backend-type-conversion-for-stablehlo
       description: Analogous in scope to the upstream `finalizing-bufferize` pass.
-      type: mlir::FunctionOpInterface
+        See details there.
+      type: FUNC
       next_pass: null
     - name: torch-verify-linalg-on-tensors-backend-contract
-      description: Verifies conformity to the linalg-on-tensors backend contract.
+      description: null
       type: MODULE
       next_pass: null
     - name: torch-verify-tosa-backend-contract
-      description: Verifies conformity to the linalg-on-tensors backend contract.
+      description: null
       type: MODULE
       next_pass: null
     - name: torch-verify-stablehlo-backend-contract
-      description: Verifies conformity to the stablehlo backend contract.
+      description: null
       type: MODULE
       next_pass: null
     - name: torch-unpack-quant-tensor
-      description: Unpack quantized int4 tensor from int8 container.
-      type: mlir::FunctionOpInterface
+      description: null
+      type: FUNC
       next_pass: null
     - name: torch-convert-custom-quant-op
-      description: Convert torch custom quant op to linalg.
-      type: mlir::FunctionOpInterface
-      next_pass: null
-    - name: refback-munge-calling-conventions
-      description: Munge calling conventions for calling via ExecutionEngine
-      type: MODULE
-      next_pass: null
-    - name: refback-mlprogram-bufferize
-      description: Bufferize the MLProgram dialect ops
-      type: MODULE
-      next_pass: null
-    - name: refback-expand-ops-for-llvm
-      description: Expand ops into more primitive ops before LLVM lowering.
-      type: FUC
-      next_pass: null
-    - name: refback-munge-memref-copy
-      description: Munge memref.copy to linalg.copy
-      type: FUC
-      next_pass: null
-    - name: refback-generalize-tensor-concat
-      description: Convert tensor.concat to other tensor ops
-      type: FUC
-      next_pass: null
-    - name: refback-generalize-tensor-pad
-      description: Convert tensor.pad to linalg ops
-      type: FUC
+      description: null
+      type: FUNC
       next_pass: null

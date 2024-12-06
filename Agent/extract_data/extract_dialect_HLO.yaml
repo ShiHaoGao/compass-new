@@ -1,0 +1,10 @@
+dialects:
+- dialect_name: chlo
+  namespace_name: ::mlir::chlo
+dialects:
+- dialect_name: stablehlo
+  namespace_name: ::mlir::stablehlo
+dialects:
+- dialect_name: vhlo
+  namespace_name: ::mlir::vhlo
+

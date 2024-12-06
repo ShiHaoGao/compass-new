@@ -1,0 +1,122 @@
+dialects:
+  torch:
+    description: "torch dialect"
+    passes:
+      - name: "torch-globalize-object-graph"
+        type: MODULE
+        description: "Converts TorchScript object graphs to a globalized form."
+      - name: "torch-prepare-for-globalize-object-graph"
+        type: MODULE
+        description: "Lowering in preparation for globalizing."
+      - name: "torch-adjust-calling-conventions"
+        type: MODULE
+        description: "Adjust the calling conventions of functions."
+      - name: "torch-inline-global-slots"
+        type: MODULE
+        description: "Inlines torch.global_slot ops when it is safe to do so."
+      - name: "torch-reduce-op-variants"
+        type: FUNC
+        description: "Reduces variants of ops to a smaller set of ops."
+      - name: "torch-maximize-value-semantics"
+        type: FUNC
+        description: "Use value-semantic tensors where possible."
+      - name: "torch-refine-public-return"
+        type: MODULE
+        description: "Refine public return."
+      - name: "torch-decompose-complex-ops"
+        type: FUNC
+        description: "Decompose complicated torch operations."
+      - name: "torch-scalarize-shapes"
+        type: FUNC
+        description: "Takes common shape computation operations and scalarizes them."
+      - name: "torch-recompose-complex-ops"
+        type: FUNC
+        description: "Recompose torch operations that have been decomposed by TorchScript."
+      - name: "torch-fuse-quantized-ops"
+        type: FUNC
+        description: "QDQ: Fuse recognized QDQ op sequences."
+      - name: "torch-match-quantized-custom-ops"
+        type: FUNC
+        description: "Match quantized operations that occur in different namespace."
+      - name: "torch-reify-shape-calculations"
+        type: MODULE
+        description: "Reify shape calculations."
+      - name: "torch-simplify-shape-calculations"
+        type: FUNC
+        description: "Simplify reified shape calculations."
+      - name: "torch-reify-dtype-calculations"
+        type: MODULE
+        description: "Reify dtype calculations."
+      - name: "torch-simplify-dtype-calculations"
+        type: FUNC
+        description: "Simplify reified dtype calculations."
+      - name: "torch-drop-abstract-interp-calculations"
+        type: FUNC
+        description: "Drop reified abstract interpretation calculations."
+      - name: "torch-erase-module-initializer"
+        type: MODULE
+        description: "Erase the `torch.global_slot.module_initializer` op."
+      - name: "torch-lower-to-backend-contract"
+        type: MODULE
+        description: "Perform simplifications until the backend contract is satisfied."
+      - name: "torch-verify-backend-contract-no-decompositions"
+        type: MODULE
+        description: "Check that program satisfies backend contract."
+      - name: "torch-restructure-non-constant-axes"
+        type: FUNC
+        description: "Ensure that every Reduction.cpp op has a constant reduction axis."
+      - name: "convert-torch-to-arith"
+        type: FUNC
+        description: "Convert recognized Torch ops to Std ops."
+      - name: "convert-torch-to-scf"
+        type: FUNC
+        description: "Convert recognized Torch ops to SCF ops."
+      - name: "convert-torch-to-linalg"
+        type: FUNC
+        description: "Convert recognized Torch ops to Linalg ops."
+      - name: "convert-torch-to-tensor"
+        type: FUNC
+        description: "Convert Torch ops to the Tensor dialect."
+      - name: "convert-torch-to-tosa"
+        type: FUNC
+        description: "Convert Torch ops to TOSA ops."
+      - name: "convert-torch-to-tmtensor"
+        type: FUNC
+        description: "Convert recognized Torch ops to TMTensor/Linalg ops."
+      - name: "convert-torch-to-stablehlo"
+        type: FUNC
+        description: "Convert Torch ops to Stablehlo ops."
+
+  torch_c:
+      description: "This dialect contains ops and transforms for converting from the Torch backend contract to the linalg-on-tensors backend contract."
+      passes:
+        - name: "convert-torch-conversion-to-mlprogram"
+          type: MODULE
+          description: "Convert recognized TorchConversion ops to MLProgram ops."
+        - name: "torch-func-backend-type-conversion"
+          type: MODULE
+          description: "Convert functions to operate on builtin tensors"
+        - name: "torch-func-backend-type-conversion-for-stablehlo"
+          type: MODULE 
+          description: "Convert functions to operate on builtin tensors for stablehlo backend"
+        - name: "torch-finalizing-backend-type-conversion"
+          type: FUNC
+          description: "Finalizes a partial conversion to builtin tensors"
+        - name: "torch-finalizing-backend-type-conversion-for-stablehlo"
+          type: FUNC
+          description: "Finalizes a partial conversion to builtin tensors for stablehlo"
+        - name: "torch-verify-linalg-on-tensors-backend-contract"
+          type: MODULE
+          description: "Verifies conformity to the linalg-on-tensors backend contract"
+        - name: "torch-verify-tosa-backend-contract"
+          type: MODULE
+          description: "Verifies conformity to the linalg-on-tensors backend contract"
+        - name: "torch-verify-stablehlo-backend-contract"
+          type: MODULE
+          description: "Verifies conformity to the stablehlo backend contract"
+        - name: "torch-unpack-quant-tensor"
+          type: FUNC
+          description: "Unpack quantized int4 tensor from int8 containter"
+        - name: "torch-convert-custom-quant-op"
+          type: FUNC
+          description: "Convert torch custom quant op to linalg"

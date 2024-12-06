@@ -1,0 +1,119 @@
+passes:
+- description: Legalize StableHLO to LinAlg
+  dialect: stablehlo
+  name: stablehlo-legalize-to-linalg
+  type: MODULE
+passes:
+- description: Legalize StableHLO to TOSA
+  dialect: stablehlo
+  name: stablehlo-legalize-to-tosa
+  type: FUNC
+- description: This pass adds rewriters to make StableHLO ops more compatible with
+    TOSA ops. Currently simplifies stablehlo.dot_general into stablehlo.dot for easier
+    lowering.
+  dialect: stablehlo
+  name: stablehlo-prepare-for-tosa
+  type: FUNC
+- description: This pass rewrites StableHLO quantized operations to integer operations
+    by inserting TOSA rescale operations at the inputs and outputs of the integer
+    operations.
+  dialect: stablehlo
+  name: stablehlo-quant-legalize-to-tosa-rescale
+  type: FUNC
+- description: This pass rewrites TOSA rescale operations to StableHLO primitive math
+    operations.
+  dialect: tosa
+  name: tosa-rescale-legalize-to-stablehlo
+  type: FUNC
+passes:
+- description: Legalizes from CHLO ops flow to StableHLO and Shape ops
+  dialect: chlo
+  name: chlo-legalize-to-stablehlo
+  type: FUNC
+- description: An experimental pass that legalizes shape-related ops to StableHLO
+    ops. Bringing shape and data computations together via an optional pass will make
+    it possible for the StableHLO ecosystem to potentially leverage the compilation
+    pipelines that use StableHLO operations to model dynamism.
+  dialect: shape
+  name: shape-legalize-to-stablehlo
+  type: FUNC
+- description: Folds StableHLO operations
+  dialect: stablehlo
+  name: stablehlo-aggressive-folder
+  type: FUNC
+- description: Canonicalizes StableHLO operations
+  dialect: stablehlo
+  name: stablehlo-aggressive-simplification
+  type: FUNC
+- description: Canonicalizes dynamic StableHLO ops into static ops. Replaces dynamic
+    StableHLO ops like DynamicReshapeOp with the corresponding static counterparts
+    like `DynamicReshapeOp` to `ReshapeOp` or `DynamicBroadcastInDim` to `BroadcastInDim`
+    if all the dynamic elements of these ops are actually constants.
+  dialect: stablehlo
+  name: stablehlo-canonicalize-dynamism
+  type: FUNC
+- description: Compatibility expander for StableHLO operations. StableHLO ops gets
+    updates or new op is introduced in the latest versions. This opt-in pass expands
+    backward compatibility with older StableHLO versions by decomposing newer StableHLO
+    operations into equivalent operations supported by those older versions.
+  dialect: stablehlo
+  name: stablehlo-compatibility-expander
+  type: FUNC
+- description: Pass to transform the IR to be on signless integers.
+  dialect: stablehlo
+  name: stablehlo-convert-to-signless
+  type: ModuleOp
+- description: Replaces composite ops with a call to their decomposition.
+  dialect: stablehlo
+  name: stablehlo-legalize-composite-to-call
+  type: FUNC
+- description: Legalize deprecated ops to well-supported ops. The StableHLO v1.0 Opset
+    Deprecations RFC (#2283) proposes to remove several redundant ops. This pass helps
+    to evaluate the impact of these op removals in various compilation pipelines by
+    legalizing them to their long-term supported counterparts.
+  dialect: stablehlo
+  name: stablehlo-legalize-deprecated-ops
+  type: FUNC
+- description: 'Fuse (de-quantize, floating-point operation and quantize) pattern
+    into StableHLO quantized operation. Note: The pass does not delete any preexisting
+    op.'
+  dialect: stablehlo
+  name: stablehlo-legalize-qdq-to-quantized-op
+  type: FUNC
+- description: Decompose quantized StableHLO operation to (de-quantize, floating-point
+    operation and quantize) pattern. Decompose StableHLO quantized programs using
+    uniform quantize/dequantize operations.
+  dialect: stablehlo
+  name: stablehlo-legalize-quantized-op-to-qdq
+  type: FUNC
+- description: Convert from StableHLO quantized ops to StableHLO primitive math ops.
+    Convert StableHLO programs using UniformQuantized types to semantically equivalent
+    integer math operations.
+  dialect: stablehlo
+  name: stablehlo-legalize-quant-to-math
+  type: FUNC
+- description: Legalize StableHLO to VHLO.
+  dialect: stablehlo
+  name: stablehlo-legalize-to-vhlo
+  type: ModuleOp
+- description: Refines the argument shapes of the main function. Modifies the arguments
+    of the main function using the input type signature. Wraps arguments in `custom_call
+    @stablehlo.shape_refinement_operand_wrapper` to keep the IR valid before shape
+    refinement is run.
+  dialect: stablehlo
+  name: stablehlo-refine-arguments
+  type: ModuleOp
+- description: Refines shapes across a StableHLO program. Walks through a StableHLO
+    program refining shapes within ops. The flagship use case for this pass is specializing
+    dynamically-shaped programs to static shapes.
+  dialect: stablehlo
+  name: stablehlo-refine-shapes
+  type: ModuleOp
+- description: Legalize VHLO to StableHLO.
+  dialect: vhlo
+  name: vhlo-legalize-to-stablehlo
+  type: ModuleOp
+- description: Convert between versions of VHLO.
+  dialect: vhlo
+  name: vhlo-to-version
+  type: MODULE

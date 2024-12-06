@@ -1,0 +1,133 @@
+dialects:
+  stablehlo:
+    description: stablehlo dialect
+    passes:
+    - name: stablehlo-legalize-to-linalg
+      description: Legalize StableHLO to LinAlg
+      type: MODULE
+      next_pass: null
+    - name: stablehlo-legalize-to-tosa
+      description: Legalize StableHLO to TOSA
+      type: FUNC
+      next_pass: null
+    - name: stablehlo-prepare-for-tosa
+      description: This pass adds rewriters to make StableHLO ops more compatible
+        with TOSA ops. Currently simplifies stablehlo.dot_general into stablehlo.dot
+        for easier lowering.
+      type: FUNC
+      next_pass: null
+    - name: stablehlo-quant-legalize-to-tosa-rescale
+      description: This pass rewrites StableHLO quantized operations to integer operations
+        by inserting TOSA rescale operations at the inputs and outputs of the integer
+        operations.
+      type: FUNC
+      next_pass: null
+    - name: stablehlo-aggressive-folder
+      description: Folds StableHLO operations
+      type: FUNC
+      next_pass: null
+    - name: stablehlo-aggressive-simplification
+      description: Canonicalizes StableHLO operations
+      type: FUNC
+      next_pass: null
+    - name: stablehlo-canonicalize-dynamism
+      description: Canonicalizes dynamic StableHLO ops into static ops. Replaces dynamic
+        StableHLO ops like DynamicReshapeOp with the corresponding static counterparts
+        like `DynamicReshapeOp` to `ReshapeOp` or `DynamicBroadcastInDim` to `BroadcastInDim`
+        if all the dynamic elements of these ops are actually constants.
+      type: FUNC
+      next_pass: null
+    - name: stablehlo-compatibility-expander
+      description: Compatibility expander for StableHLO operations. StableHLO ops
+        gets updates or new op is introduced in the latest versions. This opt-in pass
+        expands backward compatibility with older StableHLO versions by decomposing
+        newer StableHLO operations into equivalent operations supported by those older
+        versions.
+      type: FUNC
+      next_pass: null
+    - name: stablehlo-convert-to-signless
+      description: Pass to transform the IR to be on signless integers.
+      type: ModuleOp
+      next_pass: null
+    - name: stablehlo-legalize-composite-to-call
+      description: Replaces composite ops with a call to their decomposition.
+      type: FUNC
+      next_pass: null
+    - name: stablehlo-legalize-deprecated-ops
+      description: Legalize deprecated ops to well-supported ops. The StableHLO v1.0
+        Opset Deprecations RFC (#2283) proposes to remove several redundant ops. This
+        pass helps to evaluate the impact of these op removals in various compilation
+        pipelines by legalizing them to their long-term supported counterparts.
+      type: FUNC
+      next_pass: null
+    - name: stablehlo-legalize-qdq-to-quantized-op
+      description: 'Fuse (de-quantize, floating-point operation and quantize) pattern
+        into StableHLO quantized operation. Note: The pass does not delete any preexisting
+        op.'
+      type: FUNC
+      next_pass: null
+    - name: stablehlo-legalize-quantized-op-to-qdq
+      description: Decompose quantized StableHLO operation to (de-quantize, floating-point
+        operation and quantize) pattern. Decompose StableHLO quantized programs using
+        uniform quantize/dequantize operations.
+      type: FUNC
+      next_pass: null
+    - name: stablehlo-legalize-quant-to-math
+      description: Convert from StableHLO quantized ops to StableHLO primitive math
+        ops. Convert StableHLO programs using UniformQuantized types to semantically
+        equivalent integer math operations.
+      type: FUNC
+      next_pass: null
+    - name: stablehlo-legalize-to-vhlo
+      description: Legalize StableHLO to VHLO.
+      type: ModuleOp
+      next_pass: null
+    - name: stablehlo-refine-arguments
+      description: Refines the argument shapes of the main function. Modifies the
+        arguments of the main function using the input type signature. Wraps arguments
+        in `custom_call @stablehlo.shape_refinement_operand_wrapper` to keep the IR
+        valid before shape refinement is run.
+      type: ModuleOp
+      next_pass: null
+    - name: stablehlo-refine-shapes
+      description: Refines shapes across a StableHLO program. Walks through a StableHLO
+        program refining shapes within ops. The flagship use case for this pass is
+        specializing dynamically-shaped programs to static shapes.
+      type: ModuleOp
+      next_pass: null
+  tosa:
+    description: tosa dialect
+    passes:
+    - name: tosa-rescale-legalize-to-stablehlo
+      description: This pass rewrites TOSA rescale operations to StableHLO primitive
+        math operations.
+      type: FUNC
+      next_pass: null
+  chlo:
+    description: chlo dialect
+    passes:
+    - name: chlo-legalize-to-stablehlo
+      description: Legalizes from CHLO ops flow to StableHLO and Shape ops
+      type: FUNC
+      next_pass: null
+  shape:
+    description: shape dialect
+    passes:
+    - name: shape-legalize-to-stablehlo
+      description: An experimental pass that legalizes shape-related ops to StableHLO
+        ops. Bringing shape and data computations together via an optional pass will
+        make it possible for the StableHLO ecosystem to potentially leverage the compilation
+        pipelines that use StableHLO operations to model dynamism.
+      type: FUNC
+      next_pass: null
+  vhlo:
+    description: vhlo dialect
+    passes:
+    - name: vhlo-legalize-to-stablehlo
+      description: Legalize VHLO to StableHLO.
+      type: ModuleOp
+      next_pass: null
+    - name: vhlo-to-version
+      description: Convert between versions of VHLO.
+      type: MODULE
+      next_pass: null

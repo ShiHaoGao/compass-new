@@ -1,0 +1,202 @@
+passes:
+- description: Convert TMTensor ops to loops and Linalg ops.
+  dialect: tm_tensor
+  name: tm-tensor-to-loops
+  type: FUNC
+- description: Bufferize the TMTensor dialect
+  dialect: tm_tensor
+  name: tm-tensor-bufferize
+  type: FUNC
+- description: Convert recognized Torch ops to Std ops
+  dialect: torch
+  name: convert-torch-to-arith
+  type: FUNC
+- description: Convert recognized Torch ops to SCF ops
+  dialect: torch
+  name: convert-torch-to-scf
+  type: FUNC
+- description: Convert ATen ops to linalg ops.
+  dialect: torch
+  name: convert-torch-to-linalg
+  type: FUNC
+- description: Converts any `Torch` operators that were expressible as `Tensor` dialect
+    operations.
+  dialect: torch
+  name: convert-torch-to-tensor
+  type: FUNC
+passes: []
+passes:
+- description: This pass assumes that TOSA ops are responsible for emitting error
+    guards in case of shape mismatches.
+  dialect: torch
+  name: convert-torch-to-tosa
+  type: FUNC
+- description: Convert ATen ops to tmtensor/linalg ops.
+  dialect: torch
+  name: convert-torch-to-tmtensor
+  type: FUNC
+- description: Convert TorchConversion ops to mlprogram ops.
+  dialect: torch
+  name: convert-torch-conversion-to-mlprogram
+  type: MODULE
+- description: Convert Torch ops to Stablehlo ops.
+  dialect: torch
+  name: convert-torch-to-stablehlo
+  type: FUNC
+- description: Converts equivalent ONNX custom ops to built-in equivalents.
+  dialect: torch::onnx_c
+  name: convert-torch-onnx-to-torch
+  type: FUNC
+- description: Converts TorchScript object graphs to a globalized form
+  dialect: torch
+  name: torch-globalize-object-graph
+  type: MODULE
+- description: Lowering in preparation for globalizing
+  dialect: torch
+  name: torch-prepare-for-globalize-object-graph
+  type: MODULE
+- description: Adjusts the calling conventions of functions in the module, with the
+    aim of preparing them for backends and further lowering passes.
+  dialect: torch
+  name: torch-adjust-calling-conventions
+  type: MODULE
+- description: Inlines torch.global_slot ops when it is safe to do so.
+  dialect: torch
+  name: torch-inline-global-slots
+  type: MODULE
+- description: Reduces variants of ops to a smaller set of ops.
+  dialect: torch
+  name: torch-reduce-op-variants
+  type: FUNC
+- description: Use value-semantic tensors where possible.
+  dialect: torch
+  name: torch-maximize-value-semantics
+  type: FUNC
+- description: Refine public return
+  dialect: torch
+  name: torch-refine-public-return
+  type: MODULE
+- description: Decompose complicated torch operations
+  dialect: torch
+  name: torch-decompose-complex-ops
+  type: FUNC
+- description: Takes common shape computation operations and scalarizes them.
+  dialect: torch
+  name: torch-scalarize-shapes
+  type: FUNC
+- description: Recompose torch operations that have been decomposed by TorchScript
+  dialect: torch
+  name: torch-recompose-complex-ops
+  type: FUNC
+- description: 'QDQ: Fuse recognized QDQ op sequences.'
+  dialect: torch
+  name: torch-fuse-quantized-ops
+  type: FUNC
+- description: Match quantized operations that occur in different namespace.
+  dialect: torch
+  name: torch-match-quantized-custom-ops
+  type: FUNC
+- description: Reify shape calculations.
+  dialect: torch
+  name: torch-reify-shape-calculations
+  type: MODULE
+- description: Simplify reified shape calculations.
+  dialect: torch
+  name: torch-simplify-shape-calculations
+  type: FUNC
+- description: Reify dtype calculations.
+  dialect: torch
+  name: torch-reify-dtype-calculations
+  type: MODULE
+- description: Simplify reified dtype calculations.
+  dialect: torch
+  name: torch-simplify-dtype-calculations
+  type: FUNC
+- description: Drop reified abstract interpretation calculations.
+  dialect: torch
+  name: torch-drop-abstract-interp-calculations
+  type: FUNC
+- description: Erase the `torch.global_slot.module_initializer` op.
+  dialect: torch
+  name: torch-erase-module-initializer
+  type: MODULE
+- description: Perform simplifications until the backend contract is satisfied.
+  dialect: torch
+  name: torch-lower-to-backend-contract
+  type: MODULE
+- description: Check that program satisfies backend contract.
+  dialect: torch
+  name: torch-verify-backend-contract-no-decompositions
+  type: MODULE
+- description: Ensure that every Reduction.cpp op has a constant reduction axis.
+  dialect: torch
+  name: torch-restructure-non-constant-axes
+  type: FUNC
+- description: Partial type conversion pass analogous in scope to the upstream `func-bufferize`
+    pass. See details there.
+  dialect: torch_c
+  name: torch-func-backend-type-conversion
+  type: MODULE
+- description: Partial type conversion pass analogous in scope to the upstream `func-bufferize`
+    pass. See details there.
+  dialect: torch_c
+  name: torch-func-backend-type-conversion-for-stablehlo
+  type: MODULE
+- description: Analogous in scope to the upstream `finalizing-bufferize` pass. See
+    details there.
+  dialect: torch_c
+  name: torch-finalizing-backend-type-conversion
+  type: FUNC
+- description: Analogous in scope to the upstream `finalizing-bufferize` pass. See
+    details there.
+  dialect: torch_c
+  name: torch-finalizing-backend-type-conversion-for-stablehlo
+  type: FUNC
+- description: null
+  dialect: torch_c
+  name: torch-verify-linalg-on-tensors-backend-contract
+  type: MODULE
+- description: null
+  dialect: torch_c
+  name: torch-verify-tosa-backend-contract
+  type: MODULE
+- description: null
+  dialect: torch_c
+  name: torch-verify-stablehlo-backend-contract
+  type: MODULE
+- description: null
+  dialect: torch_c
+  name: torch-unpack-quant-tensor
+  type: FUNC
+- description: null
+  dialect: torch_c
+  name: torch-convert-custom-quant-op
+  type: FUNC
+passes:
+- description: Legalize StableHLO to LinAlg
+  dialect: null
+  name: stablehlo-legalize-to-linalg
+  type: null
+passes:
+- description: Legalize StableHLO to TOSA
+  dialect: null
+  name: stablehlo-legalize-to-tosa
+  type: mlir::func::FuncOp
+- description: Prepare StableHLO for legalization to TOSA
+  dialect: null
+  name: stablehlo-prepare-for-tosa
+  type: mlir::func::FuncOp
+- description: Legalize StableHLO Quantized operations to TOSA rescale operations
+  dialect: null
+  name: stablehlo-quant-legalize-to-tosa-rescale
+  type: mlir::func::FuncOp
+- description: Legalize TOSA rescales to StableHlo primitive math operations
+  dialect: null
+  name: tosa-rescale-legalize-to-stablehlo
+  type: mlir::func::FuncOp
+passes:
+- description: Walks through a StableHLO program and inserts a probe instrumentation
+    operation after each suitable operation.
+  dialect: mlir::stablehlo::interpreter::InterpreterDialect
+  name: interpreter-instrument-with-probe
+  type: ModuleOp
