@@ -112,9 +112,9 @@ def main() -> None:
     主函数，处理MLIR文件的完整流程。
     """
     # 配置路径
-    target_directory = "tests/MLIR_core_tests"
-    mlir_opt_path = "/home/gaoshihao/learn/python/compass/tools/mlir-opt"
-    output_dir = "output_modules"
+    target_directory = "tests/circt_tests"
+    mlir_opt_path = "/home/gaoshihao/learn/python/compass/tools/circt-opt"
+    output_dir = "circt_splited_files"
 
     # 清理输出目录
     cleanup_directory(output_dir)

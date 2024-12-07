@@ -368,11 +368,11 @@ func.func @transfer_read_write_1d_mask_scalable(%A : memref<?xf32>, %base : inde
 // CHECK-LABEL: func @transfer_read_write_tensor
 //       CHECK:   vector.transfer_read
 //       CHECK:   vector.transfer_write
-func.func @transfer_read_write_tensor(%A: tensor<?xf32>, %base : index) -> vector<4xf32> {
-  %f7 = arith.constant 7.0: f32
-  %c0 = arith.constant 0: index
-  %f = vector.transfer_read %A[%base], %f7 : tensor<?xf32>, vector<4xf32>
-  %w = vector.transfer_write %f, %A[%c0] : vector<4xf32>, tensor<?xf32>
-  "test.some_use"(%w) : (tensor<?xf32>) -> ()
-  return %f : vector<4xf32>
-}
+// func.func @transfer_read_write_tensor(%A: tensor<?xf32>, %base : index) -> vector<4xf32> {
+//   %f7 = arith.constant 7.0: f32
+//   %c0 = arith.constant 0: index
+//   %f = vector.transfer_read %A[%base], %f7 : tensor<?xf32>, vector<4xf32>
+//   %w = vector.transfer_write %f, %A[%c0] : vector<4xf32>, tensor<?xf32>
+//   "test.some_use"(%w) : (tensor<?xf32>) -> ()
+//   return %f : vector<4xf32>
+// }

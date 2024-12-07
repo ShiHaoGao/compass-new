@@ -85,7 +85,7 @@ class MLIRPassExecutionEngine:
             logger.error(error)
             raise ValueError(f"Invalid JSON format: {e}")
 
-        if 'builtin' in dialect_ops:
+        if 'builtin' in dialect_ops and len(dialect_ops['builtin']) == 1:
             del dialect_ops['builtin']
         
         return dialect_ops, op_counts

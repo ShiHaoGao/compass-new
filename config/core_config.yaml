@@ -1,4 +1,12 @@
 dialects:
+
+  fake:
+    passes:
+      - name: "print-op-stats{json}"
+        description: "Print statistics of operations"
+        type: MODULE
+        next_pass: null
+
   builtin:
     description: "The builtin dialect contains a core set of Attributes, Operations, and Types that have wide applicability across a very large number of domains and abstractions."
     passes:
@@ -6,10 +14,7 @@ dialects:
         description: "Simplify and eliminate unrealized conversion casts"
         type: MODULE
         next_pass: null
-      - name: "print-op-stats{json}"
-        description: "Print statistics of operations"
-        type: MODULE
-        next_pass: null
+
 
   affine:
     description: "Affine dialect for loop transformations"
@@ -23,7 +28,7 @@ dialects:
     passes:
       - name: "convert-vector-to-scf"
         description: "Convert Vector dialect to SCF dialect"
-        next_pass: "convert-scf-to-cf"
+        next_pass: 'lower-affine'
       - name: "convert-vector-to-llvm"
         description: "Convert Vector dialect directly to LLVM dialect"
         next_pass: null
@@ -67,6 +72,8 @@ dialects:
         next_pass: null
       - name: tosa-to-linalg-pipeline
       - name: tosa-to-mlprogram
+      - name: tosa-to-scf
+        type: FUNC
 
   linalg:
     description: "Linear algebra operations dialect"
@@ -181,8 +188,8 @@ pipelines:
       - name: "Linalg Conversion"
         execute: "linalg"
 
-      - name: "vector Conversion"
-        execute: "vector"
+      - name: "Affine Conversion"
+        execute: "affine"
 
       - name: "Conversion to LLVM"
         execute: null

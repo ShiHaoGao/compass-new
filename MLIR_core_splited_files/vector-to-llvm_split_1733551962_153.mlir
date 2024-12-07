@@ -1,0 +1,7 @@
+module {
+  func.func @scatter_op_scalable(%arg0: memref<?xf32>, %arg1: vector<[3]xi32>, %arg2: vector<[3]xi1>, %arg3: vector<[3]xf32>) {
+    %c0 = arith.constant 0 : index
+    vector.scatter %arg0[%c0] [%arg1], %arg2, %arg3 : memref<?xf32>, vector<[3]xi32>, vector<[3]xi1>, vector<[3]xf32>
+    return
+  }
+}

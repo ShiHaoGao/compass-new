@@ -108,19 +108,19 @@ def main():
     
 
     # 示例1：测试单个文件
-    # single_file = "tests/circt_tests/Conversion/CalyxToFSM/lower-invoke.mlir"
+    # single_file = "tests/MLIR_core_tests/Conversion/AffineToStandard/lower-affine-to-vector.mlir"
     # config = LoweringConfig.for_single_file(
     #     max_iterations=1000000,
     #     debug_mode=True,
     #     save_intermediate_states=True,
     #     mlir_opt_path="./tools/circt-opt",
-    #     third_party_opt_path="./tools/circt-opt",
+    #     third_party_opt_path="config/circt_config.yaml",
     #     output_dir="custom_output",
-    #     third_party_config_path="config/circt_config.yaml",
+    #     third_party_config_path="./tools/circt-opt",
     #     core_config_path="config/core_config.yaml",
     #     target_type="custom",
-    #     illegal_dialects=[],
-    #     target_dialects=["fsm"],
+    #     illegal_dialects=["affine"],
+    #     target_dialects=["memref"],
     #     file_path=single_file,
     # )
 
@@ -131,14 +131,14 @@ def main():
         save_intermediate_states=True,
         output_dir="custom_output",
         core_config_path="config/core_config.yaml",
-        mlir_opt_path="./tools/mlir-opt",
-        third_party_config_path=None,
-        third_party_opt_path=None,
-        target_type="llvm",
-        # illegal_dialects=["fsm"],
-        # target_dialects=["sv"],
+        mlir_opt_path="./tools/circt-opt",
+        third_party_config_path="config/circt_config.yaml",
+        third_party_opt_path="./tools/circt-opt",
+        target_type="custom",
+        illegal_dialects=[],
+        target_dialects=["sv"],
         test_config=TestPathConfig(
-            test_path="output_modules", 
+            test_path="circt_splited_files", 
             recursive_search=True
         )
     )
@@ -178,7 +178,7 @@ def main():
     results = TestResults()
     
     # 处理每个文件
-    log_file_path = "processing_results.log"  # 日志文件路径
+    log_file_path = "processing_circt_sv_results.log"  # 日志文件路径
 
     with open(log_file_path, "w") as log_file:  # 清空文件内容
         log_file.write("File Processing Results:\n")
@@ -190,11 +190,10 @@ def main():
         # 将结果写入日志文件
         with open(log_file_path, "a") as log_file:  # 以追加模式打开
             log_file.write(f"{mlir_file}: {'Success' if success else 'Failure'}\n")
-
-    
-    # 打印和保存结果
-    results.print_summary()
-    results.save_report(Path(config.output_dir) / "reports")
+        
+        # 打印和保存结果
+        results.print_summary()
+        results.save_report(Path(config.output_dir) / "reports")
 
 if __name__ == "__main__":
     main()
