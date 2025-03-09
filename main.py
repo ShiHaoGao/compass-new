@@ -108,40 +108,40 @@ def main():
     
 
     # 示例1：测试单个文件
-    # single_file = "tests/MLIR_core_tests/Conversion/AffineToStandard/lower-affine-to-vector.mlir"
-    # config = LoweringConfig.for_single_file(
+    single_file = "/home/gaoshihao/learn/python/compass/tests/buddy_tests/next-compass.mlir"
+    config = LoweringConfig.for_single_file(
+        max_iterations=1000000000,
+        debug_mode=True,
+        save_intermediate_states=True,
+        mlir_opt_path="./tools/mlir-opt",
+        third_party_opt_path=None,
+        output_dir="custom_output",
+        third_party_config_path=None,
+        core_config_path="config/core_config.yaml",
+        target_type="llvm",
+        # illegal_dialects=["affine"],
+        target_dialects=["llvm"],
+        file_path=single_file,
+    )
+
+    # 示例2：处理目录中的所有文件（递归）
+    # config = LoweringConfig(
     #     max_iterations=1000000,
     #     debug_mode=True,
     #     save_intermediate_states=True,
-    #     mlir_opt_path="./tools/circt-opt",
-    #     third_party_opt_path="config/circt_config.yaml",
     #     output_dir="custom_output",
-    #     third_party_config_path="./tools/circt-opt",
     #     core_config_path="config/core_config.yaml",
+    #     mlir_opt_path="./tools/circt-opt",
+    #     third_party_config_path="config/circt_config.yaml",
+    #     third_party_opt_path="./tools/circt-opt",
     #     target_type="custom",
-    #     illegal_dialects=["affine"],
-    #     target_dialects=["memref"],
-    #     file_path=single_file,
+    #     illegal_dialects=[],
+    #     target_dialects=["sv"],
+    #     test_config=TestPathConfig(
+    #         test_path="circt_splited_files", 
+    #         recursive_search=True
+    #     )
     # )
-
-    # 示例2：处理目录中的所有文件（递归）
-    config = LoweringConfig(
-        max_iterations=1000000,
-        debug_mode=True,
-        save_intermediate_states=True,
-        output_dir="custom_output",
-        core_config_path="config/core_config.yaml",
-        mlir_opt_path="./tools/circt-opt",
-        third_party_config_path="config/circt_config.yaml",
-        third_party_opt_path="./tools/circt-opt",
-        target_type="custom",
-        illegal_dialects=[],
-        target_dialects=["sv"],
-        test_config=TestPathConfig(
-            test_path="circt_splited_files", 
-            recursive_search=True
-        )
-    )
 
     # 示例3：处理目录中的文件（非递归）
     # config = LoweringConfig(

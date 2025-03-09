@@ -69,8 +69,8 @@ Provide your output in JSON format with the following keys:
 
 """
         selection = self.chain.invoke({"input": input})
-        logger.debug(f"answer: {selection["answer"]}")
-        logger.debug(f"reason: {selection["reason"]}")
+        logger.debug(f"answer: {selection['answer']}")
+        logger.debug(f"reason: {selection['reason']}")
         
         if selection["answer"] not in activate_passes:
             return random.choice(activate_passes)

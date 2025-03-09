@@ -94,7 +94,8 @@ class DynamicLowering:
                 self.history.append(path)  # 将当前path记录到成功记录中。
                 self._save_current_state(current_mlir_code_state)
                 logger.info("Successfully Lowering mlir!")
-                return current_mlir_code_state
+                logger.info("self.successful_pass_pipeline : " +  ", ".join(self.successful_pass_pipeline))
+                # return current_mlir_code_state
 
             new_node = current.try_gen_next_node()
             if new_node is not None:
@@ -148,8 +149,8 @@ class DynamicLowering:
 
     def generate_report(self) -> dict:
         """生成详细的转换报告"""
-        stats = self.statistics.get_all_statistics()
-        best_path = self.search_tree.get_best_path()
+        # stats = self.statistics.get_all_statistics()
+        # best_path = self.search_tree.get_best_path()
         
         report = {
             "applied_passes": self.history,
@@ -161,21 +162,22 @@ class DynamicLowering:
                 "max_depth": self.search_tree.metrics.max_depth,
                 "total_time": self.search_tree.metrics.total_time
             },
-            "pass_stats": {
-                pass_name: {
-                    "total_calls": stat.total_calls,
-                    "success_rate": stat.successful_calls / stat.total_calls,
-                    "average_time": stat.average_time
-                }
-                for pass_name, stat in stats.items()
-            }
+            "pass pipeline": self.successful_pass_pipeline,
+            # "pass_stats": {
+            #     pass_name: {
+            #         "total_calls": stat.total_calls,
+            #         "success_rate": stat.successful_calls / stat.total_calls,
+            #         "average_time": stat.average_time
+            #     }
+            #     for pass_name, stat in stats.items()
+            # }
         }
         
-        if best_path:
-            report["best_path"] = {
-                "pass pipeline": self.successful_pass_pipeline,
-                # "total_time": sum(node.metrics.time_cost for node in best_path if node.metrics),
-                # "memory_peak": max(node.metrics.memory_usage for node in best_path if node.metrics)
-            }
+        # if best_path:
+        #     report["best_path"] = {
+        #         "pass pipeline": self.successful_pass_pipeline,
+        #         # "total_time": sum(node.metrics.time_cost for node in best_path if node.metrics),
+        #         # "memory_peak": max(node.metrics.memory_usage for node in best_path if node.metrics)
+        #     }
             
         return report

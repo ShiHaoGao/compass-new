@@ -94,6 +94,9 @@ dialects:
       - name: "convert-scf-to-cf"
         description: "Convert SCF dialect to ControlFlow dialect, replacing structured control flow with a CFG"
         next_pass: null
+      - name: "convert-scf-to-openmp"
+        description: "Convert SCF dialect to OpenMP dialect"
+        next_pass: null
 
   cf:
     description: "Control Flow dialect"
@@ -122,6 +125,12 @@ dialects:
   llvm:
     description: "llvm dialect"
 
+  omp:
+    description: "OpenMP dialect"
+    passes:
+      - name: "convert-openmp-to-llvm"
+        description: "Convert OpenMP operations to LLVM dialect"
+        next_pass: null
 
   tensor:
     description: "Tensor operations dialect"
